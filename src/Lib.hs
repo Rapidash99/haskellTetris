@@ -124,6 +124,8 @@ rotateLeft tetrimino = _
 rotateRight :: Tetrimino -> Tetrimino
 rotateRight tetrimino = _
 
+rotateSelf :: Tetrimino -> Direction -> Tetrimino
+rotateSelf tetrimino = _
 
 -- | Helper functions:
 
