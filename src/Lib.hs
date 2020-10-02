@@ -158,8 +158,19 @@ initialWorld = World {field = initialField (10, 10)}
 updateWorld :: Double -> World -> World
 updateWorld t world = _
 
+
+
+tryMove :: Dir -> World -> World
+tryMove event world = world
+
+
+
 handleWorld :: Event -> World -> World
 handleWorld event world = _
+handleWorld (KeyPress "Down") = tryMove D
+handleWorld (KeyPress "Left") = tryMove L
+handleWorld (KeyPress "Right") = tryMove R
+handleWorld _ = tryMove Fix
 
 tetrisActivity :: IO ()
 tetrisActivity = activityOf initialWorld handleWorld drawWorld
