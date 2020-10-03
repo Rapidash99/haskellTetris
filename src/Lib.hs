@@ -2,11 +2,10 @@ module Lib
     ( tetrisActivity
     ) where
 
-{-# OPTIONS_GHC -Wall -fno-warn-type-defaults #-}
-{-# OPTIONS_GHC -fdefer-typed-holes -fshow-hole-constraints -funclutter-valid-hole-fits #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-import Graphics.Gloss (display, white, Picture (Circle), Display (InWindow))
+import Graphics.Gloss
+import Graphics.Gloss.Interface.IO.Interact (Event (..), SpecialKey (..), Key (..))
 
 -- | Coordinates:
 --
@@ -20,15 +19,14 @@ type Size = Coords
 
 -- | A color:
 --
--- * 0 — white  (free cell)
--- * 1 — blue   (J)
--- * 2 — cyan   (I)
--- * 3 — yellow (O)
--- * 4 — orange (L)
--- * 5 — red    (Z)
--- * 6 — purple (T)
--- * 7 — green  (S)
-type Color = Int
+-- * white  – free cell
+-- * blue   – J
+-- * cyan   – I
+-- * yellow – O
+-- * orange – L
+-- * red    – Z
+-- * purple – T
+-- * green  – S
 
 -- | Cell of which fields are composed
 type Cell = (Coords, Color)
@@ -39,24 +37,16 @@ type Score = Int
 -- | Game speed. Not implemented in MVP
 type Speed = Double
 
--- | Tetrimino rotation angle:
---
--- * Up'
--- * Left'
--- * Down'
--- * Right'
-data Angle = Up' | Direction
-
--- | Direction to move tetrimino
-data Direction = Left' | Right' | Down'
+-- | Tetrimino direction
+data Direction = UpDir | LeftDir | RightDir | DownDir
 
 -- | Tetrimino type
-data TetriminoType = J | I | O | L | Z | T | S
+data TetriminoType = J | I | O | L | Z | T | S | FreeCell
 
 -- | Tetrimino
 data Tetrimino = Tetrimino
-  { t        :: TetriminoType
-    , angle  :: Angle
+  { type'    :: TetriminoType
+    , direction  :: Direction
     , coords :: Coords
   }
 
@@ -79,58 +69,97 @@ data World = World
 
 -- | Draw functions:
 
---drawTetrimino :: Tetrimino -> Picture
---drawTetrimino tetrimino = _
+drawTetrimino :: Tetrimino -> Picture
+drawTetrimino Tetrimino{type'=type'', direction=direction', coords=(x, y)} =
+  blank -- to implement
 
---drawCell :: Cell -> Picture
---drawCell cell = _
---  where
---    ((x, y), color) = cell
+drawCell :: Cell -> Picture
+drawCell cell = blank -- to implement
+  where
+    ((x, y), color) = cell
 
---drawField :: Field -> Picture
---drawField field = _
+drawField :: Field -> Picture
+drawField field = blank -- to implement
 
---drawWorld :: World -> Picture
---drawWorld World{field=field'} = drawField field'
+drawWorld :: World -> Picture
+drawWorld World{field=field'} = drawField field'
 
 
 -- | Translation functions:
 
+colorToType :: Color -> TetriminoType
+colorToType color
+  | color == white = FreeCell
+--  | color ==
+--  | color ==
+--  | color ==
+--  | color ==
+--  | color ==
+--  | color ==
+--  | color ==
+
 dirToCoords :: Direction -> Coords
 dirToCoords dir = case dir of
-  Left'  -> (-1, 0)
-  Right' -> (1, 0)
-  Down'  -> (0, 1)
+  LeftDir  -> (-1, 0)
+  RightDir -> (1, 0)
+  DownDir  -> (0, 1)
+  UpDir -> (0, -1)
 
 coordsToDir :: Coords -> Maybe Direction
 coordsToDir coords = case coords of
-  (-1, 0) -> Just Left'
-  (1, 0)  -> Just Right'
-  (0, 1)  -> Just Down'
+  (-1, 0) -> Just LeftDir
+  (1, 0)  -> Just RightDir
+  (0, 1)  -> Just DownDir
+  (0, -1) -> Just UpDir
   _       -> Nothing
 
 
 -- | Update functions:
 
-moveTetrimino :: Direction -> Field -> Field
-moveTetrimino direction field = field -- to implement
+-- | moves current tetrimino if can
+tryMove :: Direction -> Field -> Field
+tryMove direction field = case can of
+  True -> move direction field
+  False -> field
+  where
+    can = canMove direction field
 
-canMoveTetrimino :: Direction -> Field -> Bool
-canMoveTetrimino direction field = True -- to implement
+-- | checks if you can move current tetrimino
+canMove :: Direction -> Field -> Bool
+canMove direction field = True -- to implement
 
-rotateLeft :: Tetrimino -> Tetrimino
+-- | moves current tetrimino (only to use in function tryMove)
+move :: Direction -> Field -> Field
+move direction field = field -- to implement
+
+-- | rotates current tetrimino by 90° left if can
+tryRotateLeft :: Field -> Field
+tryRotateLeft tetrimino = tetrimino -- to implement
+
+-- | rotates current tetrimino by 90° right if can
+tryRotateRight :: Field -> Field
+tryRotateRight tetrimino = tetrimino -- to implement
+
+-- | checks if you can rotate current tetrimino by 90° left
+canRotateLeft :: Field -> Bool
+canRotateLeft tetrimino = True -- to implement
+
+-- | checks if you can rotate current tetrimino by 90° right
+canRotateRight :: Field -> Bool
+canRotateRight tetrimino = True -- to implement
+
+-- | rotates current tetrimino by 90° left (only to use in function tryRotateLeft)
+rotateLeft :: Field -> Field
 rotateLeft tetrimino = tetrimino -- to implement
 
-rotateRight :: Tetrimino -> Tetrimino
+-- | rotates current tetrimino by 90° right (only to use in function tryRotateRight)
+rotateRight :: Field -> Field
 rotateRight tetrimino = tetrimino -- to implement
-
---rotateSelf :: Direction -> Tetrimino -> Tetrimino
---rotateSelf tetrimino direction = tetrimino -- to implement
 
 -- | Helper functions:
 
 getRandomTetrimino :: Tetrimino
-getRandomTetrimino = Tetrimino J Up' (0, 0)
+getRandomTetrimino = Tetrimino L UpDir (0, 0) -- to implement
 
 --
 -- | Initial objects generators:
@@ -158,22 +187,19 @@ initialWorld = World {field = initialField (10, 10)}
 updateWorld :: Double -> World -> World
 updateWorld t world = world -- to implement
 
-tryMoveTetrimino :: Direction -> Field -> Field
-tryMoveTetrimino direction field = case can of
-  True -> moveTetrimino direction field
-  False -> field
-  where
-    can = canMoveTetrimino direction field
-
-
-
 --handleWorld :: Event -> World -> World
---handleWorld event world = _
---handleWorld (KeyPress "Down") = tryMove D
---handleWorld (KeyPress "Left") = tryMove L
---handleWorld (KeyPress "Right") = tryMove R
---handleWorld _ = tryMove Fix
+--handleWorld (EventKey KeyDown _ _ _)  world@(field) = World (tryMove DownDir field)
+--handleWorld (EventKey KeyLeft _ _ _)  world@(field) = World (tryMove LeftDir field)
+--handleWorld (EventKey KeyRight _ _ _) world@(field) = World (tryMove RightDir field)
+--handleWorld (EventKey 'A' _ _ _)      world@(field) = World (tryRotateLeft field)
+--handleWorld (EventKey 'D' _ _ _)      world@(field) = World (tryRotateRight field)
+--handleWorld _                         world@(field) = world
+
 
 tetrisActivity :: IO ()
-tetrisActivity = display (InWindow "Nice Window" (200, 200) (10, 10)) white (Circle 80)
---tetrisActivity = activityOf initialWorld handleWorld drawWorld
+tetrisActivity = display (InWindow "Nice Window" (800, 800) (10, 10)) cyan (Circle 80)
+--tetrisActivity = play displayMode backgroundColor steps initialWorld drawWorld handleWorld eatController
+  where
+    displayMode = (InWindow "Nice Window" (800, 800) (10, 10))
+    steps = 1
+    backgroundColor = white
