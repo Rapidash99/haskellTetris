@@ -2,13 +2,13 @@ name:                Tetris
 version:             0.1.0.0
 github:              "githubuser/Tetris"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2020 Author name here"
+author:              Vyacheslav Vasilev & Kamil Alimov
+maintainer:          v.vasilev@innopolis.ru & k.alimov@innopolis.ru
+copyright:           2020 Vyacheslav Vasilev & Kamil Alimov
 
 extra-source-files:
-- README.md
-- ChangeLog.md
+  - README.md
+  - ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -20,7 +20,11 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/githubuser/Tetris#readme>
 
 dependencies:
-- base >= 4.7 && < 5
+  - base >= 4.8 && < 5
+  - gloss >= 1.12.0.0
+  - random >= 1.2.0
+#  - codeworld-api == 0.6.0
+
 
 library:
   source-dirs: src
@@ -33,8 +37,15 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Wno-type-defaults
+    - -fdefer-typed-holes
+    - -fshow-hole-constraints
+    - -funclutter-valid-hole-fits
     dependencies:
     - Tetris
+    - gloss
+    - random
 
 tests:
   Tetris-test:
@@ -44,5 +55,12 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+      - -Wall
+      - -Wno-type-defaults
+      - -fdefer-typed-holes
+      - -fshow-hole-constraints
+      - -funclutter-valid-hole-fits
     dependencies:
     - Tetris
+    - gloss
+    - ranodm

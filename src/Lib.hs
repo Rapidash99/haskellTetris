@@ -6,7 +6,7 @@ module Lib
 {-# OPTIONS_GHC -fdefer-typed-holes -fshow-hole-constraints -funclutter-valid-hole-fits #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-import CodeWorld (Picture, Event, drawingOf, blank, activityOf)
+--import CodeWorld (Picture, Event, drawingOf, blank, activityOf)
 
 -- | Coordinates:
 --
@@ -79,19 +79,19 @@ data World = World
 
 -- | Draw functions:
 
-drawTetrimino :: Tetrimino -> Picture
-drawTetrimino tetrimino = _
+--drawTetrimino :: Tetrimino -> Picture
+--drawTetrimino tetrimino = _
 
-drawCell :: Cell -> Picture
-drawCell cell = _
-  where
-    ((x, y), color) = cell
+--drawCell :: Cell -> Picture
+--drawCell cell = _
+--  where
+--    ((x, y), color) = cell
 
-drawField :: Field -> Picture
-drawField field = _
+--drawField :: Field -> Picture
+--drawField field = _
 
-drawWorld :: World -> Picture
-drawWorld World{field=field'} = drawField field'
+--drawWorld :: World -> Picture
+--drawWorld World{field=field'} = drawField field'
 
 
 -- | Translation functions:
@@ -112,17 +112,17 @@ coordsToDir coords = case coords of
 
 -- | Update functions:
 
-moveTetrimino :: Field -> Direction -> Field
-moveTetrimino field = _
+--moveTetrimino :: Field -> Direction -> Field
+--moveTetrimino field = _
 
-canMoveTetrimino :: Field -> Direction -> Field
-canMoveTetrimino field = _
+--canMoveTetrimino :: Field -> Direction -> Field
+--canMoveTetrimino field = _
 
-rotateLeft :: Tetrimino -> Tetrimino
-rotateLeft tetrimino = _
+--rotateLeft :: Tetrimino -> Tetrimino
+--rotateLeft tetrimino = _
 
-rotateRight :: Tetrimino -> Tetrimino
-rotateRight tetrimino = _
+--rotateRight :: Tetrimino -> Tetrimino
+--rotateRight tetrimino = _
 
 rotateSelf :: Tetrimino -> Direction -> Tetrimino
 rotateSelf tetrimino = _
@@ -130,16 +130,16 @@ rotateSelf tetrimino = _
 -- | Helper functions:
 
 getRandomTetrimino :: Tetrimino
-getRandomTetrimino = _
+getRandomTetrimino = Tetrimino J Up' (0, 0)
 
-
+--
 -- | Initial objects generators:
 
 --g :: (Int, Int) -> (Int, Int) -> [Cell]
 --g (curX, curY) (maxX, maxY) = ((curX, curY), 0): (g (curX + 1, curY) (maxX, maxY))
 
 initialCells :: (Int, Int) -> [[Cell]]
-initialCells (x, y) = _ -- [[((0, 0), 0), ((1, 0), 0), ((2, 0), 0), ...]]
+initialCells (x, y) = [[]] -- [[((0, 0), 0), ((1, 0), 0), ((2, 0), 0), ...]]
 
 initialField :: (Int, Int) -> Field
 initialField size = Field
@@ -155,8 +155,8 @@ initialWorld = World {field = initialField (10, 10)}
 
 -- | Game handling functions
 
-updateWorld :: Double -> World -> World
-updateWorld t world = _
+--updateWorld :: Double -> World -> World
+--updateWorld t world = _
 
 
 
@@ -165,12 +165,13 @@ tryMove event world = world
 
 
 
-handleWorld :: Event -> World -> World
-handleWorld event world = _
+--handleWorld :: Event -> World -> World
+--handleWorld event world = _
 handleWorld (KeyPress "Down") = tryMove D
 handleWorld (KeyPress "Left") = tryMove L
 handleWorld (KeyPress "Right") = tryMove R
 handleWorld _ = tryMove Fix
 
 tetrisActivity :: IO ()
-tetrisActivity = activityOf initialWorld handleWorld drawWorld
+tetrisActivity = putStr "test"
+--tetrisActivity = activityOf initialWorld handleWorld drawWorld
