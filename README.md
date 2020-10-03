@@ -2,5 +2,4 @@
 It's a tetris game written on Haskell 
 
 ### How to run:
-1. `stack build`
-1. 
+Type `stack build & stack exec Tetris-exe` in cmd

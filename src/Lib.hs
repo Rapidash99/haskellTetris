@@ -6,7 +6,7 @@ module Lib
 {-# OPTIONS_GHC -fdefer-typed-holes -fshow-hole-constraints -funclutter-valid-hole-fits #-}
 {-# LANGUAGE OverloadedStrings #-}
 
---import CodeWorld (Picture, Event, drawingOf, blank, activityOf)
+import Graphics.Gloss (display, white, Picture (Circle), Display (InWindow))
 
 -- | Coordinates:
 --
@@ -112,20 +112,20 @@ coordsToDir coords = case coords of
 
 -- | Update functions:
 
---moveTetrimino :: Field -> Direction -> Field
---moveTetrimino field = _
+moveTetrimino :: Direction -> Field -> Field
+moveTetrimino direction field = field -- to implement
 
---canMoveTetrimino :: Field -> Direction -> Field
---canMoveTetrimino field = _
+canMoveTetrimino :: Direction -> Field -> Bool
+canMoveTetrimino direction field = True -- to implement
 
---rotateLeft :: Tetrimino -> Tetrimino
---rotateLeft tetrimino = _
+rotateLeft :: Tetrimino -> Tetrimino
+rotateLeft tetrimino = tetrimino -- to implement
 
---rotateRight :: Tetrimino -> Tetrimino
---rotateRight tetrimino = _
+rotateRight :: Tetrimino -> Tetrimino
+rotateRight tetrimino = tetrimino -- to implement
 
-rotateSelf :: Tetrimino -> Direction -> Tetrimino
-rotateSelf tetrimino = _
+--rotateSelf :: Direction -> Tetrimino -> Tetrimino
+--rotateSelf tetrimino direction = tetrimino -- to implement
 
 -- | Helper functions:
 
@@ -139,7 +139,7 @@ getRandomTetrimino = Tetrimino J Up' (0, 0)
 --g (curX, curY) (maxX, maxY) = ((curX, curY), 0): (g (curX + 1, curY) (maxX, maxY))
 
 initialCells :: (Int, Int) -> [[Cell]]
-initialCells (x, y) = [[]] -- [[((0, 0), 0), ((1, 0), 0), ((2, 0), 0), ...]]
+initialCells (x, y) = [[]] -- [[((0, 0), 0), ((1, 0), 0), ((2, 0), 0), ...]] -- to implement
 
 initialField :: (Int, Int) -> Field
 initialField size = Field
@@ -155,23 +155,25 @@ initialWorld = World {field = initialField (10, 10)}
 
 -- | Game handling functions
 
---updateWorld :: Double -> World -> World
---updateWorld t world = _
+updateWorld :: Double -> World -> World
+updateWorld t world = world -- to implement
 
-
-
-tryMove :: Dir -> World -> World
-tryMove event world = world
+tryMoveTetrimino :: Direction -> Field -> Field
+tryMoveTetrimino direction field = case can of
+  True -> moveTetrimino direction field
+  False -> field
+  where
+    can = canMoveTetrimino direction field
 
 
 
 --handleWorld :: Event -> World -> World
 --handleWorld event world = _
-handleWorld (KeyPress "Down") = tryMove D
-handleWorld (KeyPress "Left") = tryMove L
-handleWorld (KeyPress "Right") = tryMove R
-handleWorld _ = tryMove Fix
+--handleWorld (KeyPress "Down") = tryMove D
+--handleWorld (KeyPress "Left") = tryMove L
+--handleWorld (KeyPress "Right") = tryMove R
+--handleWorld _ = tryMove Fix
 
 tetrisActivity :: IO ()
-tetrisActivity = putStr "test"
+tetrisActivity = display (InWindow "Nice Window" (200, 200) (10, 10)) white (Circle 80)
 --tetrisActivity = activityOf initialWorld handleWorld drawWorld
