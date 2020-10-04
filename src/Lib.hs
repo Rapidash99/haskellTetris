@@ -72,10 +72,10 @@ drawCells :: [Cell] -> Picture
 drawCells cells = pictures (map drawCell cells)
 
 drawField :: Field -> Picture
-drawField (Field _ cells currentTetrimino) = drawCells (concat cells) -- <> drawTetrimino currentTetrimino
+drawField (Field _ cells currentTetrimino) = drawCells (concat cells) <> drawTetrimino currentTetrimino
 
 drawWorld :: World -> Picture
-drawWorld (World field _) = drawField field
+drawWorld (World field _) = scale 20 20 (drawField field)
 
 
 -- | Translation functions:
@@ -210,8 +210,8 @@ layTetrimino field@(Field size cells currentTetrimino@(Tetrimino type' coords)) 
 --  where
 --    newField = Field size newCells newTetrimino
 --    newTetrimino = getRandomTetrimino
---    newCells = mergeWithTetrimino 
-    --eliminated = eliminateRows _
+--    newCells = mergeWithTetrimino
+--    eliminated = eliminateRows _
 
 mergeWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
 mergeWithTetrimino [] _ = []
@@ -317,10 +317,10 @@ handleWorld _                                      world                    = wo
 
 
 tetrisActivity :: IO ()
---tetrisActivity = play displayMode backgroundColor fps initialWorld drawWorld handleWorld updateWorld
-tetrisActivity = display displayMode backgroundColor (drawWorld initialWorld)
+tetrisActivity = play displayMode backgroundColor fps initialWorld drawWorld handleWorld updateWorld
+--tetrisActivity = display displayMode backgroundColor (drawWorld initialWorld)
   where
-    displayMode = (InWindow "Tetris" (800, 800) (10, 10))
+    displayMode = (InWindow "Tetris" (800, 800) (100, 100))
 --    displayMode = FullScreen
     fps = 30
     backgroundColor = cyan
