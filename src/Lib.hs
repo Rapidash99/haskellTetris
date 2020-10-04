@@ -62,11 +62,14 @@ data World = World
 
 
 drawCell :: Cell -> Picture
-drawCell ((x, y), color') = translate (fromIntegral x) (fromIntegral y) (color color' (rectangleSolid 0.95 0.95))
+drawCell ((x, y), color') = translate x' y' (color color' (rectangleSolid 0.95 0.95))
+  where
+    x' = fromIntegral x
+    y' = fromIntegral (-y)
 
 tetriminoToCells :: Tetrimino -> [Cell]
 tetriminoToCells (Tetrimino type' coords) = map (\coord -> (coord, typeToColor type')) coords
-  
+
 drawTetrimino :: Tetrimino -> Picture
 drawTetrimino tetrimino = pictures (map drawCell (tetriminoToCells tetrimino))
 
@@ -144,10 +147,10 @@ tryMove direction field = case can of
 canMove :: Direction -> Field -> Bool
 canMove direction (Field size cells currentTetrimino@(Tetrimino type' coords)) = can
   where
-    can             = notOutOfBorders && notIntersects
+    can             = notOutOfBorders -- && notIntersects
     notOutOfBorders = not (areOutOfBorders newCoords size)
-    notIntersects   = not (doesIntersects fieldCoords newCoords)
-    fieldCoords     = map fst (concat cells)
+    notIntersects   = not (doesIntersects (Tetrimino type' newCoords) (concat cells))
+--    fieldCoords     = map fst (concat cells)
     newCoords       = map (\(x, y) -> (x + plusX, y + plusY)) coords
     (plusX, plusY)  = dirToCoords direction
 
@@ -208,18 +211,21 @@ eliminateRow row field@(Field _ cells _) = field -- to implement
 
 -- | updates the field when tetrimino lays down
 layTetrimino :: Field -> Field
-layTetrimino field@(Field size cells currentTetrimino@(Tetrimino type' coords)) = field
---  where
---    newField = Field size newCells newTetrimino
---    newTetrimino = getRandomTetrimino
---    newCells = mergeWithTetrimino
---    eliminated = eliminateRows _
+layTetrimino field@(Field size cells currentTetrimino@(Tetrimino type' coords)) = newField
+  where
+    newField = Field size newCells newTetrimino
+    newCells = mergeAllWithTetrimino cells currentTetrimino
+    newTetrimino = getRandomTetrimino
+--    eliminateRows
 
-mergeWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
-mergeWithTetrimino [] _ = []
---mergeWithTetrimino (row: rows) tetrimino = newRow ++ mergeWithTetrimino rows tetrimino
---  where
---    newRow = map (\cell -> mergeCell cell tetrimino) row
+mergeRowWithTetrimino :: [Cell] -> Tetrimino -> [Cell]
+mergeRowWithTetrimino [] _ = []
+
+mergeAllWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
+mergeAllWithTetrimino [] _ = []
+mergeAllWithTetrimino (row: rows) tetrimino = [newRow] ++ mergeAllWithTetrimino rows tetrimino
+  where
+    newRow = map (\cell -> mergeCell cell tetrimino) row
 
 mergeCell :: Cell -> Tetrimino -> Cell
 mergeCell cell@(coordinate, color) (Tetrimino type' coords) = case (elem coordinate coords) of
@@ -232,11 +238,13 @@ mergeCell cell@(coordinate, color) (Tetrimino type' coords) = case (elem coordin
 getRandomTetrimino :: Tetrimino
 getRandomTetrimino = Tetrimino O [(0, 0), (1, 0), (1, 1), (0, 1)] -- to implement
 
--- | checks if coordinates intersects another ones
--- hint: use concat to reduce [[Cell]] to [Cell]
-doesIntersects :: [Coords] -> [Coords] -> Bool
-doesIntersects coords [] = False
-doesIntersects coords (c:cs) = (elem c coords) || (doesIntersects cs coords)
+-- | checks if tetrimino intersects with cells
+doesIntersects :: Tetrimino -> [Cell] -> Bool
+doesIntersects _ [] = False
+doesIntersects (Tetrimino type' (c: cs)) cells = (elem c nonWhiteCoords) || (doesIntersects (Tetrimino type' cs) cells)
+  where
+    nonWhite = filter (\(_, color) -> color /= white) cells -- to fix
+    nonWhiteCoords = map fst nonWhite
 
 -- | checks if coordinate is out of borders
 isOutOfBorders :: Coords -> Size -> Bool
