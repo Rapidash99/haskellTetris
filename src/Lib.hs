@@ -65,8 +65,7 @@ drawCell :: Cell -> Picture
 drawCell ((x, y), color') = translate (fromIntegral x) (fromIntegral y) (color color' (rectangleSolid 0.95 0.95))
   
 drawTetrimino :: Tetrimino -> Picture
-drawTetrimino (Tetrimino type' coords) =
-  blank -- to implement
+drawTetrimino (Tetrimino type' coords) = pictures (map drawCell (coords, (typeToColor type')))
 
 drawCells :: [Cell] -> Picture
 drawCells cells = pictures (map drawCell cells)
