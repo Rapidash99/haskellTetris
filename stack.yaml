@@ -5,6 +5,7 @@ packages:
 
 extra-deps:
   - gloss-1.13.1.2
+#  - extra-1.7.8
 
 # Override the architecture used by stack, especially useful on Windows
 # arch: i386

@@ -1,6 +1,6 @@
 name:                Tetris
 version:             0.1.0.0
-github:              "githubuser/Tetris"
+github:              "kamel2700/haskellTetris"
 license:             BSD3
 author:              Vyacheslav Vasilev & Kamil Alimov
 maintainer:          v.vasilev@innopolis.ru & k.alimov@innopolis.ru
@@ -23,7 +23,7 @@ dependencies:
   - base >= 4.8 && < 5
   - gloss >= 1.12.0.0
   - random >= 1.1
-#  - codeworld-api == 0.6.0
+#  - extra >= 1.7.8
 
 
 library:
@@ -31,8 +31,8 @@ library:
 
 executables:
   Tetris-exe:
-    main:                Main.hs
-    source-dirs:         app
+    main:        Main.hs
+    source-dirs: app
     ghc-options:
     - -threaded
     - -rtsopts
@@ -49,18 +49,18 @@ executables:
 
 tests:
   Tetris-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main:        Spec.hs
+    source-dirs: test
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-      - -Wall
-      - -Wno-type-defaults
-      - -fdefer-typed-holes
-      - -fshow-hole-constraints
-      - -funclutter-valid-hole-fits
+    - -Wall
+    - -Wno-type-defaults
+    - -fdefer-typed-holes
+    - -fshow-hole-constraints
+    - -funclutter-valid-hole-fits
     dependencies:
     - Tetris
     - gloss
-    - ranodm
+    - random

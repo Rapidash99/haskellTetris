@@ -4,7 +4,7 @@ module Lib
 
 -- {-# LANGUAGE OverloadedStrings #-}
 
-import Graphics.Gloss (display)
+import Graphics.Gloss (play, display)
 import Graphics.Gloss.Data.Picture
 import Graphics.Gloss.Interface.IO.Interact
 
@@ -22,10 +22,10 @@ type Size = Coords
 type Cell = (Coords, Color)
 
 -- | Player score. Not implemented in MVP
-type Score = Int
+--type Score = Int
 
 -- | Game speed. Not implemented in MVP
-type Speed = Double
+--type Speed = Double
 
 -- | Tetrimino direction
 data Direction = UpDir | LeftDir | RightDir | DownDir
@@ -166,7 +166,7 @@ rotateRight tetrimino = tetrimino -- to implement
 
 -- | returns the field without completed rows
 eliminateRows :: Field -> Field
-eliminateRows field = field -- to implement
+eliminateRows field@(Field _ cells _ _) = field -- to implement
 
 -- | tries to remove a certain row in a field
 tryEliminateRow :: Int -> Field -> Field
@@ -187,6 +187,7 @@ nextTetrimino field = newField
     newField = field -- to implement
     --eliminated = eliminateRows _
 
+
 -- | Helper functions:
 
 -- | generates random tetrimino
@@ -197,6 +198,14 @@ getRandomTetrimino = Tetrimino L UpDir (0, 0) -- to implement
 -- hint: use concat to reduce [[Cell]] to [Cell]
 doesIntersects :: Tetrimino -> [Cell] -> Bool
 doesIntersects tetrimino cells = True -- to implement
+
+-- | checks if given cell is occupied
+isCellOccupied :: Cell -> Bool
+isCellOccupied (_, color) = color == white
+
+-- | checks if given row is full
+isRowFull :: [Cell] -> Bool
+isRowFull cells = all isCellOccupied cells
 
 --
 -- | Initial objects generators:
@@ -221,8 +230,8 @@ initialWorld = World {field = initialField (10, 10)}
 
 -- | Game handling functions
 
-updateWorld :: Double -> World -> World
-updateWorld t world = world -- to implement
+updateWorld :: Float -> World -> World
+updateWorld dt (World field) = World (tryMove DownDir field)
 
 handleWorld :: Event -> World -> World
 handleWorld (EventKey (SpecialKey KeyDown) _ _ _)  world@(World field) = World (tryMove DownDir field)
@@ -234,8 +243,7 @@ handleWorld _                                      world@(World field) = world
 
 
 tetrisActivity :: IO ()
-tetrisActivity = display (InWindow "Nice Window" (800, 800) (10, 10)) cyan (Circle 80)
---tetrisActivity = play displayMode backgroundColor steps initialWorld drawWorld handleWorld eatController
+tetrisActivity = play displayMode backgroundColor steps initialWorld drawWorld handleWorld updateWorld
   where
     displayMode = (InWindow "Nice Window" (800, 800) (10, 10))
     steps = 1
