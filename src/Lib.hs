@@ -2,10 +2,11 @@ module Lib
     ( tetrisActivity
     ) where
 
-{-# LANGUAGE OverloadedStrings #-}
+-- {-# LANGUAGE OverloadedStrings #-}
 
-import Graphics.Gloss
-import Graphics.Gloss.Interface.IO.Interact (Event (..), SpecialKey (..), Key (..))
+import Graphics.Gloss (display)
+import Graphics.Gloss.Data.Picture
+import Graphics.Gloss.Interface.IO.Interact
 
 -- | Coordinates:
 --
@@ -16,17 +17,6 @@ type Coords = (Int, Int)
 --
 -- (x, y)
 type Size = Coords
-
--- | A color:
---
--- * white  – free cell
--- * blue   – J
--- * cyan   – I
--- * yellow – O
--- * orange – L
--- * red    – Z
--- * purple – T
--- * green  – S
 
 -- | Cell of which fields are composed
 type Cell = (Coords, Color)
@@ -89,21 +79,31 @@ drawWorld World{field=field'} = drawField field'
 
 colorToType :: Color -> TetriminoType
 colorToType color
-  | color == white = FreeCell
---  | color ==
---  | color ==
---  | color ==
---  | color ==
---  | color ==
---  | color ==
---  | color ==
+  | color == white  = FreeCell
+  | color == blue   = J
+  | color == cyan   = I
+  | color == yellow = O
+  | color == orange = L
+  | color == red    = Z
+  | color == violet = T
+  | color == green  = S
+
+typeToColor :: TetriminoType -> Color
+typeToColor FreeCell = white
+typeToColor J        = blue
+typeToColor I        = cyan
+typeToColor O        = yellow
+typeToColor L        = orange
+typeToColor Z        = red
+typeToColor T        = violet
+typeToColor S        = green
 
 dirToCoords :: Direction -> Coords
 dirToCoords dir = case dir of
   LeftDir  -> (-1, 0)
   RightDir -> (1, 0)
   DownDir  -> (0, 1)
-  UpDir -> (0, -1)
+  UpDir    -> (0, -1)
 
 coordsToDir :: Coords -> Maybe Direction
 coordsToDir coords = case coords of
@@ -113,16 +113,24 @@ coordsToDir coords = case coords of
   (0, -1) -> Just UpDir
   _       -> Nothing
 
+-- | returns all cells that tetrimino occupies
+tetriminoCells :: Tetrimino -> [Cell]
+tetriminoCells tetrimino@(Tetrimino type' direction (x, y)) = [] -- to implement
+
 
 -- | Update functions:
 
 -- | moves current tetrimino if can
+-- if cannot move down, updates the field
 tryMove :: Direction -> Field -> Field
 tryMove direction field = case can of
-  True -> move direction field
-  False -> field
+  True  -> move direction field
+  False -> newField
   where
     can = canMove direction field
+    newField = case direction of
+      DownDir -> nextTetrimino field
+      _       -> field
 
 -- | checks if you can move current tetrimino
 canMove :: Direction -> Field -> Bool
@@ -156,10 +164,39 @@ rotateLeft tetrimino = tetrimino -- to implement
 rotateRight :: Field -> Field
 rotateRight tetrimino = tetrimino -- to implement
 
+-- | returns the field without completed rows
+eliminateRows :: Field -> Field
+eliminateRows field = field -- to implement
+
+-- | tries to remove a certain row in a field
+tryEliminateRow :: Int -> Field -> Field
+tryEliminateRow row field = field -- to implement
+
+-- | checks if you can remove a certain row in a field
+canEliminateRow :: Int -> Field -> Bool
+canEliminateRow row field = True -- to implement
+
+-- | removes a certain row in a field (only to use in function tryEliminateRow)
+eliminateRow :: Int -> Field -> Field
+eliminateRow row field = field -- to implement
+
+-- | updates the field when tetrimino falls down
+nextTetrimino :: Field -> Field
+nextTetrimino field = newField
+  where
+    newField = field -- to implement
+    --eliminated = eliminateRows _
+
 -- | Helper functions:
 
+-- | generates random tetrimino
 getRandomTetrimino :: Tetrimino
 getRandomTetrimino = Tetrimino L UpDir (0, 0) -- to implement
+
+-- | checks if given tetrimino intersects with cells
+-- hint: use concat to reduce [[Cell]] to [Cell]
+doesIntersects :: Tetrimino -> [Cell] -> Bool
+doesIntersects tetrimino cells = True -- to implement
 
 --
 -- | Initial objects generators:
@@ -187,13 +224,13 @@ initialWorld = World {field = initialField (10, 10)}
 updateWorld :: Double -> World -> World
 updateWorld t world = world -- to implement
 
---handleWorld :: Event -> World -> World
---handleWorld (EventKey KeyDown _ _ _)  world@(field) = World (tryMove DownDir field)
---handleWorld (EventKey KeyLeft _ _ _)  world@(field) = World (tryMove LeftDir field)
---handleWorld (EventKey KeyRight _ _ _) world@(field) = World (tryMove RightDir field)
---handleWorld (EventKey 'A' _ _ _)      world@(field) = World (tryRotateLeft field)
---handleWorld (EventKey 'D' _ _ _)      world@(field) = World (tryRotateRight field)
---handleWorld _                         world@(field) = world
+handleWorld :: Event -> World -> World
+handleWorld (EventKey (SpecialKey KeyDown) _ _ _)  world@(World field) = World (tryMove DownDir field)
+handleWorld (EventKey (SpecialKey KeyLeft) _ _ _)  world@(World field) = World (tryMove LeftDir field)
+handleWorld (EventKey (SpecialKey KeyRight) _ _ _) world@(World field) = World (tryMove RightDir field)
+handleWorld (EventKey (Char 'A') _ _ _)            world@(World field) = World (tryRotateLeft field)
+handleWorld (EventKey (Char 'D') _ _ _)            world@(World field) = World (tryRotateRight field)
+handleWorld _                                      world@(World field) = world
 
 
 tetrisActivity :: IO ()
