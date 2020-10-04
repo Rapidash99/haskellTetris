@@ -136,7 +136,14 @@ tryMove direction field = case can of
 
 -- | checks if you can move current tetrimino
 canMove :: Direction -> Field -> Bool
-canMove direction field = True -- to implement
+canMove direction field@(Field size cells currentTetrimino@(Tetrimino type' coords)) = can
+  where
+    can = notOutOfBorders && notIntersects
+    notOutOfBorders = not (areOutOfBorders newCoords size)
+    notIntersects = not (doesIntersects fieldCoords newCoords)
+    fieldCoords = map fst (concat cells)
+    newCoords = map (\(x, y) -> (x + plusX, y + plusY)) coords
+    (plusX, plusY) = dirToCoords direction
 
 -- | moves current tetrimino (only to use in function tryMove)
 move :: Direction -> Field -> Field
@@ -198,10 +205,19 @@ nextTetrimino field = newField
 getRandomTetrimino :: Tetrimino
 getRandomTetrimino = Tetrimino L [(0, 0), (0, 1), (0, 2), (1, 2)] -- to implement
 
--- | checks if given tetrimino intersects with cells
+-- | checks if coordinates intersects another ones
 -- hint: use concat to reduce [[Cell]] to [Cell]
-doesIntersects :: Tetrimino -> [Cell] -> Bool
-doesIntersects tetrimino cells = True -- to implement
+doesIntersects :: [Coords] -> [Coords] -> Bool
+doesIntersects coords [] = False
+doesIntersects coords (c:cs) = (elem c coords) || (doesIntersects cs coords)
+
+-- | checks if coordinate is out of borders
+isOutOfBorders :: Coords -> Size -> Bool
+isOutOfBorders (x, y) (sizeX, sizeY) = x < 0 || x >= sizeX || y < 0 || y >= sizeY
+
+-- | checks if coordinates are out of borders
+areOutOfBorders :: [Coords] -> Size -> Bool
+areOutOfBorders coords size = any (\coordinate -> isOutOfBorders coordinate size) coords
 
 -- | checks if given cell is occupied
 isCellOccupied :: Cell -> Bool
@@ -220,8 +236,6 @@ isRowFree cells = all (not . isCellOccupied) cells
 
 --g :: (Int, Int) -> (Int, Int) -> [Cell]
 --g (curX, curY) (maxX, maxY) = ((curX, curY), 0): (g (curX + 1, curY) (maxX, maxY))
-
-
 
 initialCells :: (Int, Int) -> [[Cell]]
 initialCells (x, y)  -- [[((0, 0), 0), ((1, 0), 0), ((2, 0), 0), ...]] -- to implement
