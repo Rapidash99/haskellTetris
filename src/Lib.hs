@@ -36,7 +36,6 @@ data TetriminoType = J | I | O | L | Z | T | S | FreeCell
 -- | Tetrimino
 data Tetrimino = Tetrimino
   { type'        :: TetriminoType
-    , direction  :: Direction
     , coords     :: [Coords]
   }
 
@@ -46,7 +45,7 @@ data Field = Field
   { size             :: Size
   , cells            :: [[Cell]]
   , currentTetrimino :: Tetrimino
-  , nextTetriminoes  :: (Tetrimino, Tetrimino)
+--  , nextTetriminoes  :: (Tetrimino, Tetrimino)
   }
 
 -- | World
@@ -60,7 +59,7 @@ data World = World
 -- | Draw functions:
 
 drawTetrimino :: Tetrimino -> Picture
-drawTetrimino (Tetrimino type' direction coords) =
+drawTetrimino (Tetrimino type' coords) =
   blank -- to implement
 
 drawCell :: Cell -> Picture
@@ -115,7 +114,7 @@ coordsToDir coords = case coords of
 
 -- | returns all cells that tetrimino occupies (is not needed anymore as we keep all the cells initially)
 --tetriminoCells :: Tetrimino -> [Cell]
---tetriminoCells (Tetrimino type' direction coords) = [] -- to implement
+--tetriminoCells (Tetrimino type' coords) = [] -- to implement
 
 
 -- | Update functions:
@@ -166,7 +165,7 @@ rotateRight tetrimino = tetrimino -- to implement
 
 -- | returns the field without completed rows
 eliminateRows :: Field -> Field
-eliminateRows field@(Field _ cells _ _) = field -- to implement
+eliminateRows field@(Field _ cells _) = field -- to implement
 
 -- | tries to remove a certain row in a field
 tryEliminateRow :: Int -> Field -> Field
@@ -174,13 +173,13 @@ tryEliminateRow row field = field -- to implement
 
 -- | checks if you can remove a certain row in a field
 canEliminateRow :: Int -> Field -> Bool
-canEliminateRow row (Field _ cells _ _) = case ((length cells) - row > 0) of 
+canEliminateRow row (Field _ cells _) = case ((length cells) - row) of
   True -> isRowFull (cells !! row)
   False -> False
 
 -- | removes a certain row in a field (only to use in function tryEliminateRow)
 eliminateRow :: Int -> Field -> Field
-eliminateRow row field@(Field _ cells _ _) = field
+eliminateRow row field@(Field _ cells _) = take 
 
 -- | updates the field when tetrimino falls down
 nextTetrimino :: Field -> Field
@@ -205,9 +204,13 @@ doesIntersects tetrimino cells = True -- to implement
 isCellOccupied :: Cell -> Bool
 isCellOccupied (_, color) = color == white
 
--- | checks if given row is full
+-- | checks if in a given row all cells are occupied
 isRowFull :: [Cell] -> Bool
 isRowFull cells = all isCellOccupied cells
+
+-- | checks if given row has no occupied cells
+isRowFree :: [Cell] -> Bool
+isRowFree cells = all (not . isCellOccupied) cells
 
 --
 -- | Initial objects generators:
@@ -223,7 +226,6 @@ initialField size = Field
   { size             = size
   , cells            = initialCells size
   , currentTetrimino = getRandomTetrimino
-  , nextTetriminoes  = (getRandomTetrimino, getRandomTetrimino)
   }
 
 initialWorld :: World
