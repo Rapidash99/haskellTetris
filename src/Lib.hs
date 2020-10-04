@@ -35,9 +35,9 @@ data TetriminoType = J | I | O | L | Z | T | S | FreeCell
 
 -- | Tetrimino
 data Tetrimino = Tetrimino
-  { type'    :: TetriminoType
+  { type'        :: TetriminoType
     , direction  :: Direction
-    , coords :: Coords
+    , coords     :: [Coords]
   }
 
 
@@ -60,7 +60,7 @@ data World = World
 -- | Draw functions:
 
 drawTetrimino :: Tetrimino -> Picture
-drawTetrimino Tetrimino{type'=type'', direction=direction', coords=(x, y)} =
+drawTetrimino (Tetrimino type' direction coords) =
   blank -- to implement
 
 drawCell :: Cell -> Picture
@@ -113,9 +113,9 @@ coordsToDir coords = case coords of
   (0, -1) -> Just UpDir
   _       -> Nothing
 
--- | returns all cells that tetrimino occupies
-tetriminoCells :: Tetrimino -> [Cell]
-tetriminoCells tetrimino@(Tetrimino type' direction (x, y)) = [] -- to implement
+-- | returns all cells that tetrimino occupies (is not needed anymore as we keep all the cells initially)
+--tetriminoCells :: Tetrimino -> [Cell]
+--tetriminoCells (Tetrimino type' direction coords) = [] -- to implement
 
 
 -- | Update functions:
@@ -174,11 +174,13 @@ tryEliminateRow row field = field -- to implement
 
 -- | checks if you can remove a certain row in a field
 canEliminateRow :: Int -> Field -> Bool
-canEliminateRow row field = True -- to implement
+canEliminateRow row (Field _ cells _ _) = case ((length cells) - row > 0) of 
+  True -> isRowFull (cells !! row)
+  False -> False
 
 -- | removes a certain row in a field (only to use in function tryEliminateRow)
 eliminateRow :: Int -> Field -> Field
-eliminateRow row field = field -- to implement
+eliminateRow row field@(Field _ cells _ _) = field
 
 -- | updates the field when tetrimino falls down
 nextTetrimino :: Field -> Field
@@ -192,7 +194,7 @@ nextTetrimino field = newField
 
 -- | generates random tetrimino
 getRandomTetrimino :: Tetrimino
-getRandomTetrimino = Tetrimino L UpDir (0, 0) -- to implement
+getRandomTetrimino = Tetrimino L UpDir [(0, 0), (0, 1), (0, 2), (1, 2)] -- to implement
 
 -- | checks if given tetrimino intersects with cells
 -- hint: use concat to reduce [[Cell]] to [Cell]
