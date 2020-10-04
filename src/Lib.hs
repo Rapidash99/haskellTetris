@@ -31,7 +31,7 @@ type Cell = (Coords, Color)
 data Direction = UpDir | LeftDir | RightDir | DownDir
 
 -- | Tetrimino type
-data TetriminoType = J | I | O | L | Z | T | S | FreeCell
+data TetriminoType = J | I | O | L | Z | T | S | FreeCell | Wall
 
 -- | Tetrimino
 data Tetrimino = Tetrimino
@@ -86,6 +86,8 @@ colorToType color
   | color == red    = Z
   | color == violet = T
   | color == green  = S
+  | color == black  = Wall
+
 
 typeToColor :: TetriminoType -> Color
 typeToColor FreeCell = white
@@ -96,6 +98,7 @@ typeToColor L        = orange
 typeToColor Z        = red
 typeToColor T        = violet
 typeToColor S        = green
+typeToColor Wall     = black
 
 dirToCoords :: Direction -> Coords
 dirToCoords dir = case dir of
@@ -218,8 +221,13 @@ isRowFree cells = all (not . isCellOccupied) cells
 --g :: (Int, Int) -> (Int, Int) -> [Cell]
 --g (curX, curY) (maxX, maxY) = ((curX, curY), 0): (g (curX + 1, curY) (maxX, maxY))
 
+
+
 initialCells :: (Int, Int) -> [[Cell]]
-initialCells (x, y) = [[]] -- [[((0, 0), 0), ((1, 0), 0), ((2, 0), 0), ...]] -- to implement
+initialCells (x, y)  -- [[((0, 0), 0), ((1, 0), 0), ((2, 0), 0), ...]] -- to implement
+  | x > 1 || y > 1 = Wall
+  | otherwise = FreeCell
+
 
 initialField :: (Int, Int) -> Field
 initialField size = Field
