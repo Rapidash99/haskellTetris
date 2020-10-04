@@ -31,6 +31,7 @@ type Cell = (Coords, Color)
 -- | Tetrimino direction
 data Direction = UpDir | LeftDir | RightDir | DownDir
 
+
 -- | Tetrimino type
 data TetriminoType = J | I | O | L | Z | T | S | FreeCell | Wall
 
@@ -230,7 +231,18 @@ mergeCell cell@(coordinate, color) (Tetrimino type' coords) = case (elem coordin
 
 -- | generates random tetrimino
 getRandomTetrimino :: Tetrimino
-getRandomTetrimino = Tetrimino O [(0, 0), (1, 0), (1, 1), (0, 1)] -- to implement
+getRandomTetrimino = case a of 
+  1 -> Tetrimino O [(5, 0), (6, 0), (6, 1), (5, 1)] 
+  2 -> Tetrimino J [(5, 0), (5, 1), (5, 2), (4, 2)] 
+  3 -> Tetrimino I [(5, 0), (6, 0), (7, 0), (8, 0)]
+  4 -> Tetrimino L [(5, 0), (5, 1), (5, 2), (6, 2)]
+  5 -> Tetrimino Z [(5, 0), (6, 0), (6, 1), (7, 1)]
+  6 -> Tetrimino T [(5, 0), (5, 1), (4, 1), (6, 1)]
+  7 -> Tetrimino S [(5, 0), (6, 0), (5, 1), (4, 1)]     
+  where 
+    a = randomRIO (1, 7)
+
+
 
 -- | checks if coordinates intersects another ones
 -- hint: use concat to reduce [[Cell]] to [Cell]
