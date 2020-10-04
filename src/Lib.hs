@@ -36,7 +36,7 @@ data TetriminoType = J | I | O | L | Z | T | S | FreeCell | Wall
 -- | Tetrimino
 data Tetrimino = Tetrimino
   { type'        :: TetriminoType
-    , coords     :: [Coords]
+  , coords     :: [Coords]
   }
 
 
@@ -176,13 +176,13 @@ tryEliminateRow row field = field -- to implement
 
 -- | checks if you can remove a certain row in a field
 canEliminateRow :: Int -> Field -> Bool
-canEliminateRow row (Field _ cells _) = case ((length cells) - row) of
+canEliminateRow row (Field _ cells _) = case ((length cells) - row > 0) of
   True -> isRowFull (cells !! row)
   False -> False
 
 -- | removes a certain row in a field (only to use in function tryEliminateRow)
 eliminateRow :: Int -> Field -> Field
-eliminateRow row field@(Field _ cells _) = take 
+eliminateRow row field@(Field _ cells _) = field -- to implement
 
 -- | updates the field when tetrimino falls down
 nextTetrimino :: Field -> Field
@@ -196,7 +196,7 @@ nextTetrimino field = newField
 
 -- | generates random tetrimino
 getRandomTetrimino :: Tetrimino
-getRandomTetrimino = Tetrimino L UpDir [(0, 0), (0, 1), (0, 2), (1, 2)] -- to implement
+getRandomTetrimino = Tetrimino L [(0, 0), (0, 1), (0, 2), (1, 2)] -- to implement
 
 -- | checks if given tetrimino intersects with cells
 -- hint: use concat to reduce [[Cell]] to [Cell]
