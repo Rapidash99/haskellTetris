@@ -52,6 +52,7 @@ data Field = Field
 -- | World
 data World = World
   { field :: Field
+  , time :: Float
   --, score :: Score
   --, speed :: Speed
   }
@@ -60,27 +61,21 @@ data World = World
 -- | Draw functions:
 
 
-drawTile :: (Int, Int) -> Color -> Picture 
-drawTile (x , y) tile = translate (fromIntegral x) (fromIntegral y) (color tile (rectangleSolid 0.95 0.95))
-  
+drawCell :: Cell -> Picture
+drawCell ((x, y), color') = translate (fromIntegral x) (fromIntegral y) (color color' (rectangleSolid 0.95 0.95))
   
 drawTetrimino :: Tetrimino -> Picture
 drawTetrimino (Tetrimino type' coords) =
   blank -- to implement
 
 drawCells :: [Cell] -> Picture
-drawCells cell = 
-  pictures (map cellPicture (drawTile cell)) 
-    where
-      cellPicture (x, y, color)
-        | color == white drawTile (x, y) color
-        | otherwise = Nothing
+drawCells cells = pictures (map drawCell cells)
 
 drawField :: Field -> Picture
-drawField (Field _ cells currentTetrimino) = drawCells (concat cells) <> drawTetrimino currentTetrimino
+drawField (Field _ cells currentTetrimino) = drawCells (concat cells) -- <> drawTetrimino currentTetrimino
 
 drawWorld :: World -> Picture
-drawWorld World{field=field'} = drawField field'
+drawWorld (World field _) = drawField field
 
 
 -- | Translation functions:
@@ -140,23 +135,28 @@ tryMove direction field = case can of
   where
     can = canMove direction field
     newField = case direction of
-      DownDir -> nextTetrimino field
+      DownDir -> layTetrimino field
       _       -> field
 
 -- | checks if you can move current tetrimino
 canMove :: Direction -> Field -> Bool
-canMove direction field@(Field size cells currentTetrimino@(Tetrimino type' coords)) = can
+canMove direction (Field size cells currentTetrimino@(Tetrimino type' coords)) = can
   where
-    can = notOutOfBorders && notIntersects
+    can             = notOutOfBorders && notIntersects
     notOutOfBorders = not (areOutOfBorders newCoords size)
-    notIntersects = not (doesIntersects fieldCoords newCoords)
-    fieldCoords = map fst (concat cells)
-    newCoords = map (\(x, y) -> (x + plusX, y + plusY)) coords
-    (plusX, plusY) = dirToCoords direction
+    notIntersects   = not (doesIntersects fieldCoords newCoords)
+    fieldCoords     = map fst (concat cells)
+    newCoords       = map (\(x, y) -> (x + plusX, y + plusY)) coords
+    (plusX, plusY)  = dirToCoords direction
 
 -- | moves current tetrimino (only to use in function tryMove)
 move :: Direction -> Field -> Field
-move direction field = field -- to implement
+move direction (Field size cells (Tetrimino type' coords)) = newField
+  where
+    newField       = Field size cells newTetrimino
+    newTetrimino   = Tetrimino type' newCoords
+    newCoords      = map (\(x, y) -> (x + plusX, y + plusY)) coords
+    (plusX, plusY) = dirToCoords direction
 
 -- | rotates current tetrimino by 90° left if can
 tryRotateLeft :: Field -> Field
@@ -188,7 +188,11 @@ eliminateRows field@(Field _ cells _) = field -- to implement
 
 -- | tries to remove a certain row in a field
 tryEliminateRow :: Int -> Field -> Field
-tryEliminateRow row field = field -- to implement
+tryEliminateRow row field = case can of
+  True -> eliminateRow row field
+  False -> field
+  where
+    can = canEliminateRow row field
 
 -- | checks if you can remove a certain row in a field
 canEliminateRow :: Int -> Field -> Bool
@@ -200,19 +204,31 @@ canEliminateRow row (Field _ cells _) = case ((length cells) - row > 0) of
 eliminateRow :: Int -> Field -> Field
 eliminateRow row field@(Field _ cells _) = field -- to implement
 
--- | updates the field when tetrimino falls down
-nextTetrimino :: Field -> Field
-nextTetrimino field = newField
-  where
-    newField = field -- to implement
+-- | updates the field when tetrimino lays down
+layTetrimino :: Field -> Field
+layTetrimino field@(Field size cells currentTetrimino@(Tetrimino type' coords)) = field
+--  where
+--    newField = Field size newCells newTetrimino
+--    newTetrimino = getRandomTetrimino
+--    newCells = mergeWithTetrimino 
     --eliminated = eliminateRows _
 
+mergeWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
+mergeWithTetrimino [] _ = []
+--mergeWithTetrimino (row: rows) tetrimino = newRow ++ mergeWithTetrimino rows tetrimino
+--  where
+--    newRow = map (\cell -> mergeCell cell tetrimino) row
+
+mergeCell :: Cell -> Tetrimino -> Cell
+mergeCell cell@(coordinate, color) (Tetrimino type' coords) = case (elem coordinate coords) of
+  True  -> (coordinate, typeToColor type')
+  False -> cell
 
 -- | Helper functions:
 
 -- | generates random tetrimino
 getRandomTetrimino :: Tetrimino
-getRandomTetrimino = Tetrimino L [(0, 0), (0, 1), (0, 2), (1, 2)] -- to implement
+getRandomTetrimino = Tetrimino O [(0, 0), (1, 0), (1, 1), (0, 1)] -- to implement
 
 -- | checks if coordinates intersects another ones
 -- hint: use concat to reduce [[Cell]] to [Cell]
@@ -248,7 +264,8 @@ isRowFree cells = all (not . isCellOccupied) cells
 
 initialCells :: (Int, Int) -> [[Cell]]
 initialCells (x, y) =  
-  [[((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)],
+  [
+  [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)],
   [((0, 1), white),((1, 1), white),((2, 1), white),((3, 1), white),((4, 1), white),((5, 1), white),((6, 1), white),((7, 1), white),((8, 1), white),((9, 1), white)],
   [((0, 2), white),((1, 2), white),((2, 2), white),((3, 2), white),((4, 2), white),((5, 2), white),((6, 2), white),((7, 2), white),((8, 2), white),((9, 2), white)],
   [((0, 3), white),((1, 3), white),((2, 3), white),((3, 3), white),((4, 3), white),((5, 3), white),((6, 3), white),((7, 3), white),((8, 3), white),((9, 3), white)],
@@ -267,7 +284,8 @@ initialCells (x, y) =
   [((0, 16), white),((1, 16), white),((2, 16), white),((3, 16), white),((4, 16), white),((5, 16), white),((6, 16), white),((7, 16), white),((8, 16), white),((9, 16), white)],
   [((0, 17), white),((1, 17), white),((2, 17), white),((3, 17), white),((4, 17), white),((5, 17), white),((6, 17), white),((7, 17), white),((8, 17), white),((9, 17), white)],
   [((0, 18), white),((1, 18), white),((2, 18), white),((3, 18), white),((4, 18), white),((5, 18), white),((6, 18), white),((7, 18), white),((8, 18), white),((9, 18), white)],
-  [((0, 19), white),((1, 19), white),((2, 19), white),((3, 19), white),((4, 19), white),((5, 19), white),((6, 19), white),((7, 19), white),((8, 19), white),((9, 19), white)]]                               -- [[((0, 0), 0), ((1, 0), 0), ((2, 0), 0), ...]] -- to implement
+  [((0, 19), white),((1, 19), white),((2, 19), white),((3, 19), white),((4, 19), white),((5, 19), white),((6, 19), white),((7, 19), white),((8, 19), white),((9, 19), white)]
+  ]
 
 
 initialField :: (Int, Int) -> Field
@@ -278,26 +296,31 @@ initialField size = Field
   }
 
 initialWorld :: World
-initialWorld = World {field = initialField (10, 10)}
+initialWorld = World (initialField (10, 20)) 0
 
 
 -- | Game handling functions
 
 updateWorld :: Float -> World -> World
-updateWorld dt (World field) = World (tryMove DownDir field)
+updateWorld dt world@(World field time) = case (dt - time > 1) of
+  True -> World (tryMove DownDir field) (time + 1)
+  False -> world
 
 handleWorld :: Event -> World -> World
-handleWorld (EventKey (SpecialKey KeyDown) _ _ _)  world@(World field) = World (tryMove DownDir field)
-handleWorld (EventKey (SpecialKey KeyLeft) _ _ _)  world@(World field) = World (tryMove LeftDir field)
-handleWorld (EventKey (SpecialKey KeyRight) _ _ _) world@(World field) = World (tryMove RightDir field)
-handleWorld (EventKey (Char 'A') _ _ _)            world@(World field) = World (tryRotateLeft field)
-handleWorld (EventKey (Char 'D') _ _ _)            world@(World field) = World (tryRotateRight field)
-handleWorld _                                      world@(World field) = world
+handleWorld (EventKey (SpecialKey KeyDown) _ _ _)  world@(World field time) = World (tryMove DownDir  field) time
+handleWorld (EventKey (SpecialKey KeyLeft) _ _ _)  world@(World field time) = World (tryMove LeftDir  field) time
+handleWorld (EventKey (SpecialKey KeyRight) _ _ _) world@(World field time) = World (tryMove RightDir field) time
+handleWorld (EventKey (SpecialKey KeyUp) _ _ _)    world@(World field time) = World (tryMove UpDir    field) time
+handleWorld (EventKey (Char 'A') _ _ _)            world@(World field time) = World (tryRotateLeft    field) time
+handleWorld (EventKey (Char 'D') _ _ _)            world@(World field time) = World (tryRotateRight   field) time
+handleWorld _                                      world                    = world
 
 
 tetrisActivity :: IO ()
-tetrisActivity = play displayMode backgroundColor steps initialWorld drawWorld handleWorld updateWorld
+--tetrisActivity = play displayMode backgroundColor fps initialWorld drawWorld handleWorld updateWorld
+tetrisActivity = display displayMode backgroundColor (drawWorld initialWorld)
   where
-    displayMode = (InWindow "Nice Window" (800, 800) (10, 10))
-    steps = 1
-    backgroundColor = white
+    displayMode = (InWindow "Tetris" (800, 800) (10, 10))
+--    displayMode = FullScreen
+    fps = 30
+    backgroundColor = cyan
