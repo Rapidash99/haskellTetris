@@ -59,17 +59,25 @@ data World = World
 
 -- | Draw functions:
 
+
+drawTile :: (Int, Int) -> Color -> Picture 
+drawTile (x , y) tile = translate (fromIntegral x) (fromIntegral y) (color tile (rectangleSolid 0.95 0.95))
+  
+  
 drawTetrimino :: Tetrimino -> Picture
 drawTetrimino (Tetrimino type' coords) =
   blank -- to implement
 
-drawCell :: Cell -> Picture
-drawCell cell = blank -- to implement
-  where
-    ((x, y), color) = cell
+drawCells :: [Cell] -> Picture
+drawCells cell = 
+  pictures (map cellPicture (drawTile cell)) 
+    where
+      cellPicture (x, y, color)
+        | color == white drawTile (x, y) color
+        | otherwise = Nothing
 
 drawField :: Field -> Picture
-drawField field = blank -- to implement
+drawField (Field _ cells currentTetrimino) = drawCells (concat cells) <> drawTetrimino currentTetrimino
 
 drawWorld :: World -> Picture
 drawWorld World{field=field'} = drawField field'
