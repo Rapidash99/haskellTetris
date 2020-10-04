@@ -63,9 +63,12 @@ data World = World
 
 drawCell :: Cell -> Picture
 drawCell ((x, y), color') = translate (fromIntegral x) (fromIntegral y) (color color' (rectangleSolid 0.95 0.95))
+
+tetriminoToCells :: Tetrimino -> [Cell]
+tetriminoToCells (Tetrimino type' coords) = map (\coord -> (coord, typeToColor type')) coords
   
 drawTetrimino :: Tetrimino -> Picture
-drawTetrimino (Tetrimino type' coords) = pictures (map drawCell (coords, (typeToColor type')))
+drawTetrimino tetrimino = pictures (map drawCell (tetriminoToCells tetrimino))
 
 drawCells :: [Cell] -> Picture
 drawCells cells = pictures (map drawCell cells)
