@@ -2,7 +2,8 @@ module Lib
     ( tetrisActivity
     ) where
 
--- {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 
 import Graphics.Gloss (play)
 import Graphics.Gloss.Data.Picture
@@ -329,7 +330,15 @@ layTetrimino (Field size cells currentTetrimino seed) = newField
   where
     fieldWithTetrimino = Field size newCells (getRandomTetrimino seed) (seed + 1)
     newCells = mergeAllWithTetrimino cells currentTetrimino
-    newField = eliminateRows fieldWithTetrimino
+    eliminatedField = eliminateRows fieldWithTetrimino
+    newField = case (isGameOver eliminatedField) of
+      True  -> initialField (10, 20)
+      False -> eliminatedField
+
+isGameOver :: Field -> Bool
+isGameOver (Field _ cells tetrimino _) = is
+  where
+    is = doesIntersects tetrimino (concat cells)
 
 mergeAllWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
 mergeAllWithTetrimino [] _ = []
