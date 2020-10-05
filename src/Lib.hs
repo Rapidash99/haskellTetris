@@ -202,56 +202,62 @@ rotateRight (Field size cells tetrimino@(Tetrimino type' coords) seed) = Field s
     newTetrimino = ifRotateRight tetrimino
 
 ifRotateRight :: Tetrimino -> Tetrimino
-ifRotateRight (Tetrimino type' coords) = Tetrimino type' coords --newCoords
---  where
---    newCoords = case type' of
---      J -> case (x2, y2) of
---        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
---        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
---        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
---        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
---      I -> case (x2, y2) of
---        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
---        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
---        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
---        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
---      O -> coords
---      L -> case (x2, y2) of
---        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
---        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
---        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
---        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
---      Z -> case (x2, y2) of
---        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
---        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
---        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
---        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
---      T -> case (x2, y2) of
---        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
---        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
---        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)]
---        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] --
---      S -> case (x2, y2) of
---        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
---        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
---        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
---        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
---    (x1, y1) = coords !! 0
---    (x2, y2) = coords !! 1
---    (x3, y3) = coords !! 2
---    (x4, y4) = coords !! 3
+ifRotateRight (Tetrimino type' coords) = Tetrimino type' newCoords
+  where
+    newCoords = case type' of
+      J -> case (x2, y2) of
+        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
+        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
+      I -> case (x2, y2) of
+        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
+        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
+        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
+        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
+      O -> coords
+      L -> case (x2, y2) of
+        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
+        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
+      Z -> case (x2, y2) of
+        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
+        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
+        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
+        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
+      T -> case (x2, y2) of
+        (xp1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
+        (xm1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
+        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)]
+        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] --
+      S -> case (x2, y2) of
+        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
+        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
+        (x1, yp1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
+        (x1, ym1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
+      _ -> [coords !! 0]
+    (x1, y1) = coords !! 0
+    (x2, y2) = coords !! 1
+    (x3, y3) = coords !! 2
+    (x4, y4) = coords !! 3
+    xp1 = x1 + 1
+    xm1 = x1 - 1
+    yp1 = y1 + 1
+    ym1 = y1 - 1
 
 -- | returns the field without completed rows
 eliminateRows :: Field -> Field
 eliminateRows (Field size cells currentTetrimino seed) = Field size newCells currentTetrimino seed
   where
---    newCells = map (\list -> tryEliminateRow list cells) cells
     newCells = recRow cells (Field size cells currentTetrimino seed)
-
 
 recRow :: [[Cell]] -> Field -> [[Cell]]
 recRow [] _ = [] _
-recRow cells field = tryEliminateRow (take 1 cells) field : recRow  (drop 1 cells) field
+recRow cells field@(Field _ rows _ _) = res1
+  where
+    res1 = tryEliminateRow (take 1 cells) rows
+    res2 = recRow (drop 1 cells) field
 
 -- | tries to remove a certain row in a field
 tryEliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
@@ -401,14 +407,14 @@ handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  (World field) = World (try
 handleWorld (EventKey (SpecialKey KeyRight) Down _ _) (World field) = World (tryMove RightDir field)
 handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field) = World (tryMove UpDir    field)
 handleWorld (EventKey (Char 'A') Down _ _)            (World field) = World (tryRotateLeft    field)
-handleWorld (EventKey (Char 'D') Down _ _)            (World field) = World (tryRotateRight   field)
+handleWorld (EventKey (Char 'D') Down _ _)            (World field) = World (rotateRight   field)
 handleWorld _                                         world         = world
 
 
 tetrisActivity :: IO ()
 tetrisActivity = play displayMode backgroundColor fps initialWorld drawWorld handleWorld updateWorld
   where
-    displayMode = (InWindow "Tetris" (1024, 1024) (100, 100))
+    displayMode = (InWindow "Tetris" (800, 800) (100, 100))
 --    displayMode = FullScreen
     fps = 5
     backgroundColor = cyan
