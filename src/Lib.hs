@@ -124,10 +124,6 @@ coordsToDir coords = case coords of
   (0, -1) -> Just UpDir
   _       -> Nothing
 
--- | returns all cells that tetrimino occupies (is not needed anymore as we keep all the cells initially)
---tetriminoCells :: Tetrimino -> [Cell]
---tetriminoCells (Tetrimino type' coords) = [] -- to implement
-
 
 -- | Update functions:
 
@@ -180,7 +176,12 @@ tryRotateRight field = case can of
 
 -- | checks if you can rotate current tetrimino by 90° left
 canRotateLeft :: Field -> Bool
-canRotateLeft field@(Field size cells (Tetrimino type' coords) seed) = True
+canRotateLeft field@(Field size cells tetrimino@(Tetrimino type' coords) seed) = can
+  where
+    can                                  = notOutOfBorders && notIntersects
+    notOutOfBorders                      = not (areOutOfBorders newCoords size)
+    notIntersects                        = not (doesIntersects newTetrimino (concat cells))
+    newTetrimino@(Tetrimino _ newCoords) = rotateTetriminoLeft tetrimino
 
 -- | checks if you can rotate current tetrimino by 90° right
 canRotateRight :: Field -> Bool
@@ -189,62 +190,98 @@ canRotateRight field@(Field size cells tetrimino@(Tetrimino type' coords) seed) 
     can                                  = notOutOfBorders && notIntersects
     notOutOfBorders                      = not (areOutOfBorders newCoords size)
     notIntersects                        = not (doesIntersects newTetrimino (concat cells))
-    newTetrimino@(Tetrimino _ newCoords) = tetrimino --ifRotateRight tetrimino
+    newTetrimino@(Tetrimino _ newCoords) = rotateTetriminoRight tetrimino
 
 -- | rotates current tetrimino by 90° left (only to use in function tryRotateLeft)
 rotateLeft :: Field -> Field
-rotateLeft field@(Field size cells (Tetrimino type' coords) seed) = field
+rotateLeft (Field size cells tetrimino seed) = Field size cells newTetrimino seed
+  where
+    newTetrimino = rotateTetriminoLeft tetrimino
 
 -- | rotates current tetrimino by 90° right (only to use in function tryRotateRight)
 rotateRight :: Field -> Field
-rotateRight (Field size cells tetrimino@(Tetrimino type' coords) seed) = Field size cells newTetrimino seed
+rotateRight (Field size cells tetrimino seed) = Field size cells newTetrimino seed
   where
-    newTetrimino = tetrimino --ifRotateRight tetrimino
+    newTetrimino = rotateTetriminoRight tetrimino
 
---ifRotateRight :: Tetrimino -> Tetrimino
---ifRotateRight (Tetrimino type' coords) = Tetrimino type' newCoords
---  where
---    newCoords = case type' of
---      J -> case (x2, y2) of
---        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
---        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
---        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
---        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
---      I -> case (x2, y2) of
---        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
---        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
---        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
---        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
---      O -> coords
---      L -> case (x2, y2) of
---        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
---        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
---        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
---        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
---      Z -> case (x2, y2) of
---        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
---        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
---        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
---        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
---      T -> case (x2, y2) of
---        (xp1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
---        (xm1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
---        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)]
---        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] --
---      S -> case (x2, y2) of
---        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
---        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
---        (x1, yp1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
---        (x1, ym1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
---      _ -> [coords !! 0]
---    (x1, y1) = coords !! 0
---    (x2, y2) = coords !! 1
---    (x3, y3) = coords !! 2
---    (x4, y4) = coords !! 3
---    xp1 = x1 + 1
---    xm1 = x1 - 1
---    yp1 = y1 + 1
---    ym1 = y1 - 1
+rotateTetriminoLeft :: Tetrimino -> Tetrimino
+rotateTetriminoLeft (Tetrimino type' coords) = Tetrimino type' newCoords
+  where
+    (x1, y1): (x2, y2): _ = coords
+    newCoords = case (type') of
+      O -> coords
+
+      J | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+      J | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+      J | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
+      J | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
+
+      I | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
+      I | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
+      I | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
+      I | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
+
+      L | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+      L | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+      L | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
+      L | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
+
+      Z | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
+      Z | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
+      Z | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
+      Z | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
+
+      T | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
+      T | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
+      T | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 + 1)]
+      T | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 + 1)]
+
+      S | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
+      S | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
+      S | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
+      S | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
+
+      _ -> coords
+
+rotateTetriminoRight :: Tetrimino -> Tetrimino
+rotateTetriminoRight (Tetrimino type' coords) = Tetrimino type' newCoords
+  where
+    (x1, y1): (x2, y2): _ = coords
+    newCoords = case (type') of
+      O -> coords
+
+      J | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+      J | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+      J | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
+      J | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
+
+      I | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
+      I | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
+      I | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
+      I | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
+
+      L | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+      L | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+      L | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
+      L | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
+
+      Z | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
+      Z | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
+      Z | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
+      Z | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
+
+      T | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
+      T | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
+      T | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 + 1)]
+      T | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 + 1)]
+
+      S | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
+      S | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
+      S | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
+      S | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
+
+      _ -> coords
+
 
 -- | returns the field without completed rows
 --eliminateRows :: Field -> Field
@@ -406,8 +443,8 @@ handleWorld (EventKey (SpecialKey KeyDown) Down _ _)  (World field) = World (try
 handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  (World field) = World (tryMove LeftDir  field)
 handleWorld (EventKey (SpecialKey KeyRight) Down _ _) (World field) = World (tryMove RightDir field)
 handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field) = World (tryMove UpDir    field)
-handleWorld (EventKey (Char 'A') Down _ _)            (World field) = World (tryRotateLeft    field)
-handleWorld (EventKey (Char 'D') Down _ _)            (World field) = World (rotateRight   field)
+handleWorld (EventKey (Char 'a') Down _ _)            (World field) = World (tryRotateLeft    field)
+handleWorld (EventKey (Char 'd') Down _ _)            (World field) = World (tryRotateRight   field)
 handleWorld _                                         world         = world
 
 
