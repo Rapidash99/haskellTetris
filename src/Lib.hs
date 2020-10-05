@@ -246,7 +246,12 @@ eliminateRows :: Field -> Field
 eliminateRows (Field size cells currentTetrimino seed) = Field size newCells currentTetrimino seed
   where
 --    newCells = map (\list -> tryEliminateRow list cells) cells
-    newCells = take 1 cells : 
+    newCells = recRow cells (Field size cells currentTetrimino seed)
+
+
+recRow :: [[Cell]] -> Field -> [[Cell]]
+recRow [] _ = [] _
+recRow cells field = tryEliminateRow (take 1 cells) field : recRow  (drop 1 cells) field
 
 -- | tries to remove a certain row in a field
 tryEliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
