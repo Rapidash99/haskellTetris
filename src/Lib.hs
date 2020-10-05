@@ -46,7 +46,7 @@ data Field = Field
   , currentTetrimino :: Tetrimino
   , seed             :: Int
   , score            :: Score
---  , nextTetriminoes  :: (Tetrimino, Tetrimino)
+  , nextTetriminoes  :: Tetrimino
   }
 
 -- | World
@@ -62,6 +62,10 @@ data World = World
 drawScore :: Score -> Picture
 drawScore score = translate 0 150 (text ("Score: " ++ show score))
 
+drawNextTetrimino :: Tetrimino -> Picture
+drawNextTetrimino tetrimino = translate 0 200 (pictures (map drawCell (tetriminoToCells tetrimino))
+)
+
 drawCell :: Cell -> Picture
 drawCell ((x, y), color') = translate x' y' (color color' (rectangleSolid 0.95 0.95))
   where
@@ -75,10 +79,10 @@ drawTetrimino :: Tetrimino -> Picture
 drawTetrimino tetrimino = pictures (map drawCell (tetriminoToCells tetrimino))
 
 drawField :: Field -> Picture
-drawField (Field _ cells currentTetrimino _ score) = drawCells (concat cells) <> drawTetrimino currentTetrimino <> (scale 0.007 0.007 (drawScore score))
+drawField (Field _ cells currentTetrimino _ score nextTetriminoes) = drawCells (concat cells) <> drawTetrimino currentTetrimino <> (scale 0.007 0.007 (drawScore score)) <> (scale 0.007 0.007 (drawNextTetrimino nextTetriminoes))
 
 drawWorld :: World -> Picture
-drawWorld (World field) = translate (-100) 180 (scale 20 20 (drawField field))
+drawWorld (World field) = translate (-100) 180 (scale 20 20 (drawField field)) ++ scale 10 10
 
 ---------------------------------------------------------------
 -- | Translation functions:
@@ -331,7 +335,7 @@ eliminateRow cells rows = highPart ++ lowPart
 layTetrimino :: Field -> Field
 layTetrimino (Field size cells currentTetrimino seed score) = newField
   where
-    fieldWithTetrimino = Field size newCells (getRandomTetrimino seed) (seed + 1) score
+    fieldWithTetrimino = Field size newCells (getRandomTetrimino seed) (seed + 1) score (getRandomTetrimino + 1)
     newCells = mergeAllWithTetrimino cells currentTetrimino
     eliminatedField = eliminateRows fieldWithTetrimino
     newField = case (isGameOver eliminatedField) of
@@ -439,6 +443,7 @@ initialField size = Field
   , currentTetrimino = getRandomTetrimino 0
   , seed             = 1
   , score            = 0
+  , nextTetriminoes  = getRandomTetrimino 1
   }
 
 initialWorld :: World
@@ -449,10 +454,10 @@ initialWorld = World (initialField (10, 20))
 ---------------------------------------------------------------
 
 updateWorld :: Float -> World -> World
-updateWorld _dt (World field@(Field _ _ _ _ score)) = World (newField)
+updateWorld _dt (World field@(Field _ _ _ _ score _)) = World (newField)
   where
-    (Field size cells currentTetrimino seed score) = tryMove DownDir field
-    newField = Field size cells currentTetrimino seed (score + 1)
+    (Field size cells currentTetrimino seed score nextTetriminoes) = tryMove DownDir field
+    newField = Field size cells currentTetrimino seed (score + 1) nextTetriminoes
 
 handleWorld :: Event -> World -> World
 handleWorld (EventKey (SpecialKey KeyDown) Down _ _)  (World field) = World (tryMove DownDir  field)
