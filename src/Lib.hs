@@ -76,7 +76,7 @@ drawField :: Field -> Picture
 drawField (Field _ cells currentTetrimino _) = drawCells (concat cells) <> drawTetrimino currentTetrimino
 
 drawWorld :: World -> Picture
-drawWorld (World field) = translate 0 0 (scale 20 20 (drawField field))
+drawWorld (World field) = translate (-100) 200 (scale 20 20 (drawField field))
 
 
 -- | Translation functions:
@@ -331,7 +331,6 @@ layTetrimino (Field size cells currentTetrimino seed) = newField
     newCells = mergeAllWithTetrimino cells currentTetrimino
     newField = eliminateRows fieldWithTetrimino
 
-
 mergeAllWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
 mergeAllWithTetrimino [] _ = []
 mergeAllWithTetrimino (row: rows) tetrimino = [newRow] ++ mergeAllWithTetrimino rows tetrimino
@@ -450,6 +449,6 @@ handleWorld _                                         world         = world
 tetrisActivity :: IO ()
 tetrisActivity = play displayMode backgroundColor fps initialWorld drawWorld handleWorld updateWorld
   where
-    displayMode = (InWindow "Tetris" (800, 800) (100, 100))
+    displayMode = (InWindow "Tetris" (300, 450) (100, 100))
     fps = 5
     backgroundColor = cyan
