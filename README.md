@@ -41,6 +41,15 @@ The tetrimino flies until it hits another tetrimino or the bottom of the gaming 
 If any row filled, it disappears and everything that is higher than it drops one cell down.  
 If the game can't produce new tetrimino, you lose, and the game starts from the beginning.
 
+## Improvements ideas
+1. Customize field size
+1. Customize game speed
+1. Game speed acceleration
+1. Button to drop immediately
+1. Start, stop, restart, "You died"
+1. Score += 100 for each eliminated row
+1. Two players competitive tetris
+
 ## Developers team
 Vyacheslav Vasilev (v.vasilev@innopolis.ru)  
 Kamil Alimov (k.alimov@innopolis.ru)
