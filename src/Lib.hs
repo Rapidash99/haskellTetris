@@ -38,9 +38,8 @@ data TetriminoType = J | I | O | L | Z | T | S | FreeCell | Wall
 -- | Tetrimino
 data Tetrimino = Tetrimino
   { type'        :: TetriminoType
-  , coords     :: [Coords]
+  , coords       :: [Coords]
   }
-
 
 -- | Field
 data Field = Field
@@ -165,55 +164,113 @@ move direction (Field size cells (Tetrimino type' coords) seed) = newField
 
 -- | rotates current tetrimino by 90° left if can
 tryRotateLeft :: Field -> Field
-tryRotateLeft tetrimino = tetrimino -- to implement
+tryRotateLeft field = case can of
+  True -> rotateLeft field
+  False -> field
+  where
+    can = canRotateLeft field
 
 -- | rotates current tetrimino by 90° right if can
 tryRotateRight :: Field -> Field
-tryRotateRight tetrimino = tetrimino -- to implement
+tryRotateRight field = case can of
+  True -> rotateRight field
+  False -> field
+  where
+    can = canRotateRight field
 
 -- | checks if you can rotate current tetrimino by 90° left
 canRotateLeft :: Field -> Bool
-canRotateLeft tetrimino = True -- to implement
+canRotateLeft field@(Field size cells (Tetrimino type' coords) seed) = True
 
 -- | checks if you can rotate current tetrimino by 90° right
 canRotateRight :: Field -> Bool
-canRotateRight tetrimino = True -- to implement
+canRotateRight field@(Field size cells tetrimino@(Tetrimino type' coords) seed) = can
+  where
+    can                                  = notOutOfBorders && notIntersects
+    notOutOfBorders                      = not (areOutOfBorders newCoords size)
+    notIntersects                        = not (doesIntersects newTetrimino (concat cells))
+    newTetrimino@(Tetrimino _ newCoords) = ifRotateRight tetrimino
 
 -- | rotates current tetrimino by 90° left (only to use in function tryRotateLeft)
 rotateLeft :: Field -> Field
-rotateLeft tetrimino = tetrimino -- to implement
+rotateLeft field@(Field size cells (Tetrimino type' coords) seed) = field
 
 -- | rotates current tetrimino by 90° right (only to use in function tryRotateRight)
 rotateRight :: Field -> Field
-rotateRight tetrimino = tetrimino -- to implement
+rotateRight (Field size cells tetrimino@(Tetrimino type' coords) seed) = Field size cells newTetrimino seed
+  where
+    newTetrimino = ifRotateRight tetrimino
+
+ifRotateRight :: Tetrimino -> Tetrimino
+ifRotateRight (Tetrimino type' coords) = Tetrimino type' coords --newCoords
+--  where
+--    newCoords = case type' of
+--      J -> case (x2, y2) of
+--        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+--        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+--        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
+--        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
+--      I -> case (x2, y2) of
+--        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
+--        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
+--        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
+--        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
+--      O -> coords
+--      L -> case (x2, y2) of
+--        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+--        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+--        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
+--        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
+--      Z -> case (x2, y2) of
+--        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
+--        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
+--        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
+--        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
+--      T -> case (x2, y2) of
+--        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
+--        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
+--        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)]
+--        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] --
+--      S -> case (x2, y2) of
+--        (x1 + 1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
+--        (x1 - 1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
+--        (x1, y1 + 1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
+--        (x1, y1 - 1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
+--    (x1, y1) = coords !! 0
+--    (x2, y2) = coords !! 1
+--    (x3, y3) = coords !! 2
+--    (x4, y4) = coords !! 3
 
 -- | returns the field without completed rows
 eliminateRows :: Field -> Field
-eliminateRows field@(Field _ (row : rows) _ _) = map tryEliminateRow [(row : rows)] field
+eliminateRows (Field size cells currentTetrimino seed) = Field size newCells currentTetrimino seed
+  where
+--    newCells = map (\list -> tryEliminateRow list cells) cells
+    newCells = take 1 cells : 
 
 -- | tries to remove a certain row in a field
-tryEliminateRow :: [Cell] -> Field -> Field
-tryEliminateRow cells field = case can of
-  True -> eliminateRow cells field
-  False -> field
+tryEliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
+tryEliminateRow cells rows = case can of
+  True -> eliminateRow cells rows
+  False -> rows
   where
     can = canEliminateRow cells
 
 -- | checks if you can remove a certain row in a field
 canEliminateRow :: [Cell] -> Bool
-canEliminateRow cells field = isRowFull cells
+canEliminateRow cells = isRowFull cells
 
 increaseY :: [Cell] -> [Cell]
-increaseY cells@(((x, y), color): cells) = ((x, y + 1),color ) : increaseY cells
 increaseY [] = []
+increaseY (((x, y), color): cells) = ((x, y + 1), color): increaseY cells
 
 -- | removes a certain row in a field (only to use in function tryEliminateRow)
-eliminateRow :: [Cell] -> Field -> Field
-eliminateRow cells field@(Field r cells t u) = Field r (highpart ++ lowpart) t u
+eliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
+eliminateRow cells rows = highPart ++ lowPart
   where
-    row1, row2 = break ( == [Cell]) cells 
-    lowpart = drop 1 row2
-    highpart = newRow ++ (map increaseY row1)
+    (rows1, rows2) = break ( == cells) rows
+    lowPart = drop 1 rows2
+    highPart = [newRow] ++ (map increaseY rows1)
     newRow = [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)]
 
 -- | updates the field when tetrimino lays down
@@ -249,7 +306,7 @@ getRandomTetrimino seed = case (random !! (seed `mod` (length random))) of
   4 -> Tetrimino L [(5, 0), (5, 1), (5, 2), (6, 2)]
   5 -> Tetrimino Z [(5, 0), (6, 0), (6, 1), (7, 1)]
   6 -> Tetrimino T [(5, 0), (5, 1), (4, 1), (6, 1)]
-  7 -> Tetrimino S [(5, 0), (6, 0), (5, 1), (4, 1)]
+  7 -> Tetrimino S [(5, 0), (5, 1), (4, 1), (4, 2)]
   where
     random = [2,6,4,3,1,7,5,7,3,6,1,4,3,2,2,3,3,2,3,6,2,5,2,3,7,5,6,7,2,6,7,6,2,1,1,1,4,1,1,2,2,5,6,2,6,2,4,5,5,6,6,5,
               4,3,3,4,7,4,7,6,7,4,1,1,3,2,1,3,7,1,3,5,4,6,4,3,4,1,5,7,1,5,4,2,7,7,1,2,2,5,2,1,1,1,3,3,3,5,2,5,2,7,4,1]
@@ -346,7 +403,7 @@ handleWorld _                                         world         = world
 tetrisActivity :: IO ()
 tetrisActivity = play displayMode backgroundColor fps initialWorld drawWorld handleWorld updateWorld
   where
-    displayMode = (InWindow "Tetris" (800, 800) (100, 100))
+    displayMode = (InWindow "Tetris" (1024, 1024) (100, 100))
 --    displayMode = FullScreen
     fps = 5
     backgroundColor = cyan
