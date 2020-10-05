@@ -189,25 +189,32 @@ rotateRight tetrimino = tetrimino -- to implement
 
 -- | returns the field without completed rows
 eliminateRows :: Field -> Field
-eliminateRows field@(Field _ cells _ _) = field -- to implement
+eliminateRows field@(Field _ (row : rows) _ _) = map tryEliminateRow [(row : rows)] field
 
 -- | tries to remove a certain row in a field
-tryEliminateRow :: Int -> Field -> Field
-tryEliminateRow row field = case can of
-  True -> eliminateRow row field
+tryEliminateRow :: [Cell] -> Field -> Field
+tryEliminateRow cells field = case can of
+  True -> eliminateRow cells field
   False -> field
   where
-    can = canEliminateRow row field
+    can = canEliminateRow cells
 
 -- | checks if you can remove a certain row in a field
-canEliminateRow :: Int -> Field -> Bool
-canEliminateRow row (Field _ cells _ _) = case ((length cells) - row > 0) of
-  True -> isRowFull (cells !! row)
-  False -> False
+canEliminateRow :: [Cell] -> Bool
+canEliminateRow cells field = isRowFull cells
+
+increaseY :: [Cell] -> [Cell]
+increaseY cells@(((x, y), color): cells) = ((x, y + 1),color ) : increaseY cells
+increaseY [] = []
 
 -- | removes a certain row in a field (only to use in function tryEliminateRow)
-eliminateRow :: Int -> Field -> Field
-eliminateRow row field@(Field _ cells _ _) = field -- to implement
+eliminateRow :: [Cell] -> Field -> Field
+eliminateRow cells field@(Field r cells t u) = Field r (highpart ++ lowpart) t u
+  where
+    row1, row2 = break ( == [Cell]) cells 
+    lowpart = drop 1 row2
+    highpart = newRow ++ (map increaseY row1)
+    newRow = [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)]
 
 -- | updates the field when tetrimino lays down
 layTetrimino :: Field -> Field
@@ -216,6 +223,8 @@ layTetrimino (Field size cells currentTetrimino seed) = newField
     newField = Field size newCells (getRandomTetrimino seed) (seed + 1)
     newCells = mergeAllWithTetrimino cells currentTetrimino
 --    eliminateRows
+
+
 
 
 mergeAllWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
