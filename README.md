@@ -26,7 +26,7 @@ cabal install gloss
 ```
 
 ## Gameplay:
-![gif](https://s1.gifyu.com/images/tetris-demo.gif)
+![gif](https://s1.gifyu.com/images/tetris-demo407beb37b7a337bf.gif)
 
 ### Control settings:
 By keyboard:  
