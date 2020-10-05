@@ -68,7 +68,7 @@ drawCell ((x, y), color') = translate x' y' (color color' (rectangleSolid 0.95 0
     y' = fromIntegral (-y)
 
 tetriminoToCells :: Tetrimino -> [Cell]
-tetriminoToCells (Tetrimino type' coords) = map (\coord -> (coord, typeToColor type')) coords
+tetriminoToCells (Tetrimino type' coords) = map (\coordinate -> (coordinate, typeToColor type')) coords
 
 drawTetrimino :: Tetrimino -> Picture
 drawTetrimino tetrimino = pictures (map drawCell (tetriminoToCells tetrimino))
@@ -284,52 +284,52 @@ rotateTetriminoRight (Tetrimino type' coords) = Tetrimino type' newCoords
 
 
 -- | returns the field without completed rows
---eliminateRows :: Field -> Field
---eliminateRows (Field size cells currentTetrimino seed) = Field size newCells currentTetrimino seed
---  where
---    newCells = recRow cells (Field size cells currentTetrimino seed)
+eliminateRows :: Field -> Field
+eliminateRows field@(Field size cells currentTetrimino seed) = Field size eliminatedField currentTetrimino seed
+  where
+    eliminatedField = recEliminateRows 0 cells
 
---recRow :: [[Cell]] -> Field -> [[Cell]]
---recRow [] _ = [] _
---recRow cells field@(Field _ rows _ _) = res1
---  where
---    res1 = tryEliminateRow (take 1 cells) rows
---    res2 = recRow (drop 1 cells) field
+-- | recursively tries to eliminate every row
+recEliminateRows :: Int -> [[Cell]] -> [[Cell]]
+recEliminateRows rowNumber cells = case (rowNumber < length cells) of
+  True -> recEliminateRows (rowNumber + 1) newCells
+  False -> cells
+  where
+    newCells = tryEliminateRow (cells !! rowNumber) cells
 
 -- | tries to remove a certain row in a field
---tryEliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
---tryEliminateRow cells rows = case can of
---  True -> eliminateRow cells rows
---  False -> rows
---  where
---    can = canEliminateRow cells
+tryEliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
+tryEliminateRow cells rows = case can of
+  True -> eliminateRow cells rows
+  False -> rows
+  where
+    can = canEliminateRow cells
 
 -- | checks if you can remove a certain row in a field
---canEliminateRow :: [Cell] -> Bool
---canEliminateRow cells = isRowFull cells
---
---increaseY :: [Cell] -> [Cell]
---increaseY [] = []
---increaseY (((x, y), color): cells) = ((x, y + 1), color): increaseY cells
+canEliminateRow :: [Cell] -> Bool
+canEliminateRow cells = isRowFull cells
+
+-- | increases coordinate y by 1 in a list of Cells
+incrementY :: [Cell] -> [Cell]
+incrementY [] = []
+incrementY (((x, y), color): cells) = ((x, y + 1), color): incrementY cells
 
 -- | removes a certain row in a field (only to use in function tryEliminateRow)
---eliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
---eliminateRow cells rows = highPart ++ lowPart
---  where
---    (rows1, rows2) = break ( == cells) rows
---    lowPart = drop 1 rows2
---    highPart = [newRow] ++ (map increaseY rows1)
---    newRow = [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)]
+eliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
+eliminateRow cells rows = highPart ++ lowPart
+  where
+    (rows1, rows2) = break ( == cells) rows -- perfect
+    lowPart = drop 1 rows2 -- perfect
+    highPart = newRow: (map incrementY rows1)
+    newRow = [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)] -- ok
 
 -- | updates the field when tetrimino lays down
 layTetrimino :: Field -> Field
 layTetrimino (Field size cells currentTetrimino seed) = newField
   where
-    newField = Field size newCells (getRandomTetrimino seed) (seed + 1)
+    fieldWithTetrimino = Field size newCells (getRandomTetrimino seed) (seed + 1)
     newCells = mergeAllWithTetrimino cells currentTetrimino
---    eliminateRows
-
-
+    newField = eliminateRows fieldWithTetrimino
 
 
 mergeAllWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
@@ -391,9 +391,6 @@ isRowFree cells = all (not . isCellOccupied) cells
 
 --
 -- | Initial objects generators:
-
---g :: (Int, Int) -> (Int, Int) -> [Cell]
---g (curX, curY) (maxX, maxY) = ((curX, curY), 0): (g (curX + 1, curY) (maxX, maxY))
 
 initialCells :: (Int, Int) -> [[Cell]]
 initialCells (_x, _y) =  
