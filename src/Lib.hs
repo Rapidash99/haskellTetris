@@ -189,7 +189,7 @@ canRotateRight field@(Field size cells tetrimino@(Tetrimino type' coords) seed) 
     can                                  = notOutOfBorders && notIntersects
     notOutOfBorders                      = not (areOutOfBorders newCoords size)
     notIntersects                        = not (doesIntersects newTetrimino (concat cells))
-    newTetrimino@(Tetrimino _ newCoords) = ifRotateRight tetrimino
+    newTetrimino@(Tetrimino _ newCoords) = tetrimino --ifRotateRight tetrimino
 
 -- | rotates current tetrimino by 90° left (only to use in function tryRotateLeft)
 rotateLeft :: Field -> Field
@@ -199,90 +199,90 @@ rotateLeft field@(Field size cells (Tetrimino type' coords) seed) = field
 rotateRight :: Field -> Field
 rotateRight (Field size cells tetrimino@(Tetrimino type' coords) seed) = Field size cells newTetrimino seed
   where
-    newTetrimino = ifRotateRight tetrimino
+    newTetrimino = tetrimino --ifRotateRight tetrimino
 
-ifRotateRight :: Tetrimino -> Tetrimino
-ifRotateRight (Tetrimino type' coords) = Tetrimino type' newCoords
-  where
-    newCoords = case type' of
-      J -> case (x2, y2) of
-        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
-        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
-        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
-        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
-      I -> case (x2, y2) of
-        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
-        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
-        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
-        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
-      O -> coords
-      L -> case (x2, y2) of
-        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
-        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
-        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
-        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
-      Z -> case (x2, y2) of
-        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
-        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
-        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
-        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
-      T -> case (x2, y2) of
-        (xp1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
-        (xm1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
-        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)]
-        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] --
-      S -> case (x2, y2) of
-        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
-        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
-        (x1, yp1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
-        (x1, ym1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
-      _ -> [coords !! 0]
-    (x1, y1) = coords !! 0
-    (x2, y2) = coords !! 1
-    (x3, y3) = coords !! 2
-    (x4, y4) = coords !! 3
-    xp1 = x1 + 1
-    xm1 = x1 - 1
-    yp1 = y1 + 1
-    ym1 = y1 - 1
+--ifRotateRight :: Tetrimino -> Tetrimino
+--ifRotateRight (Tetrimino type' coords) = Tetrimino type' newCoords
+--  where
+--    newCoords = case type' of
+--      J -> case (x2, y2) of
+--        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+--        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+--        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
+--        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
+--      I -> case (x2, y2) of
+--        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
+--        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
+--        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
+--        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
+--      O -> coords
+--      L -> case (x2, y2) of
+--        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
+--        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
+--        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
+--        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
+--      Z -> case (x2, y2) of
+--        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
+--        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
+--        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
+--        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
+--      T -> case (x2, y2) of
+--        (xp1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
+--        (xm1, y1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
+--        (x1, yp1) -> [(x1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)]
+--        (x1, ym1) -> [(x1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] --
+--      S -> case (x2, y2) of
+--        (xp1, y1) -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
+--        (xm1, y1) -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
+--        (x1, yp1) -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
+--        (x1, ym1) -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
+--      _ -> [coords !! 0]
+--    (x1, y1) = coords !! 0
+--    (x2, y2) = coords !! 1
+--    (x3, y3) = coords !! 2
+--    (x4, y4) = coords !! 3
+--    xp1 = x1 + 1
+--    xm1 = x1 - 1
+--    yp1 = y1 + 1
+--    ym1 = y1 - 1
 
 -- | returns the field without completed rows
-eliminateRows :: Field -> Field
-eliminateRows (Field size cells currentTetrimino seed) = Field size newCells currentTetrimino seed
-  where
-    newCells = recRow cells (Field size cells currentTetrimino seed)
+--eliminateRows :: Field -> Field
+--eliminateRows (Field size cells currentTetrimino seed) = Field size newCells currentTetrimino seed
+--  where
+--    newCells = recRow cells (Field size cells currentTetrimino seed)
 
-recRow :: [[Cell]] -> Field -> [[Cell]]
-recRow [] _ = [] _
-recRow cells field@(Field _ rows _ _) = res1
-  where
-    res1 = tryEliminateRow (take 1 cells) rows
-    res2 = recRow (drop 1 cells) field
+--recRow :: [[Cell]] -> Field -> [[Cell]]
+--recRow [] _ = [] _
+--recRow cells field@(Field _ rows _ _) = res1
+--  where
+--    res1 = tryEliminateRow (take 1 cells) rows
+--    res2 = recRow (drop 1 cells) field
 
 -- | tries to remove a certain row in a field
-tryEliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
-tryEliminateRow cells rows = case can of
-  True -> eliminateRow cells rows
-  False -> rows
-  where
-    can = canEliminateRow cells
+--tryEliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
+--tryEliminateRow cells rows = case can of
+--  True -> eliminateRow cells rows
+--  False -> rows
+--  where
+--    can = canEliminateRow cells
 
 -- | checks if you can remove a certain row in a field
-canEliminateRow :: [Cell] -> Bool
-canEliminateRow cells = isRowFull cells
-
-increaseY :: [Cell] -> [Cell]
-increaseY [] = []
-increaseY (((x, y), color): cells) = ((x, y + 1), color): increaseY cells
+--canEliminateRow :: [Cell] -> Bool
+--canEliminateRow cells = isRowFull cells
+--
+--increaseY :: [Cell] -> [Cell]
+--increaseY [] = []
+--increaseY (((x, y), color): cells) = ((x, y + 1), color): increaseY cells
 
 -- | removes a certain row in a field (only to use in function tryEliminateRow)
-eliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
-eliminateRow cells rows = highPart ++ lowPart
-  where
-    (rows1, rows2) = break ( == cells) rows
-    lowPart = drop 1 rows2
-    highPart = [newRow] ++ (map increaseY rows1)
-    newRow = [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)]
+--eliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
+--eliminateRow cells rows = highPart ++ lowPart
+--  where
+--    (rows1, rows2) = break ( == cells) rows
+--    lowPart = drop 1 rows2
+--    highPart = [newRow] ++ (map increaseY rows1)
+--    newRow = [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)]
 
 -- | updates the field when tetrimino lays down
 layTetrimino :: Field -> Field
