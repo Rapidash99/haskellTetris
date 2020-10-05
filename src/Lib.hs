@@ -7,7 +7,6 @@ module Lib
 import Graphics.Gloss (play)
 import Graphics.Gloss.Data.Picture
 import Graphics.Gloss.Interface.IO.Interact
-import System.Random
 
 -- | Coordinates:
 --
@@ -67,14 +66,11 @@ drawCell ((x, y), color') = translate x' y' (color color' (rectangleSolid 0.95 0
     x' = fromIntegral x
     y' = fromIntegral (-y)
 
-tetriminoToCells :: Tetrimino -> [Cell]
-tetriminoToCells (Tetrimino type' coords) = map (\coordinate -> (coordinate, typeToColor type')) coords
+drawCells :: [Cell] -> Picture
+drawCells cells = pictures (map drawCell cells)
 
 drawTetrimino :: Tetrimino -> Picture
 drawTetrimino tetrimino = pictures (map drawCell (tetriminoToCells tetrimino))
-
-drawCells :: [Cell] -> Picture
-drawCells cells = pictures (map drawCell cells)
 
 drawField :: Field -> Picture
 drawField (Field _ cells currentTetrimino _) = drawCells (concat cells) <> drawTetrimino currentTetrimino
@@ -123,6 +119,9 @@ coordsToDir coords = case coords of
   (0, 1)  -> Just DownDir
   (0, -1) -> Just UpDir
   _       -> Nothing
+
+tetriminoToCells :: Tetrimino -> [Cell]
+tetriminoToCells (Tetrimino type' coords) = map (\coordinate -> (coordinate, typeToColor type')) coords
 
 
 -- | Update functions:
@@ -285,9 +284,10 @@ rotateTetriminoRight (Tetrimino type' coords) = Tetrimino type' newCoords
 
 -- | returns the field without completed rows
 eliminateRows :: Field -> Field
-eliminateRows field@(Field size cells currentTetrimino seed) = Field size eliminatedField currentTetrimino seed
+eliminateRows field@(Field size cells currentTetrimino seed) = eliminatedField
   where
-    eliminatedField = recEliminateRows 0 cells
+    eliminatedField = Field size eliminatedCells currentTetrimino seed
+    eliminatedCells = recEliminateRows 0 cells
 
 -- | recursively tries to eliminate every row
 recEliminateRows :: Int -> [[Cell]] -> [[Cell]]
@@ -366,7 +366,7 @@ doesIntersects _ [] = False
 doesIntersects (Tetrimino _ []) _ = False
 doesIntersects (Tetrimino type' (c: cs)) cells = (elem c nonWhiteCoords) || (doesIntersects (Tetrimino type' cs) cells)
   where
-    nonWhite = filter (\(_, color) -> color /= white) cells -- to fix
+    nonWhite = filter (\(_, color') -> color' /= white) cells -- to fix
     nonWhiteCoords = map fst nonWhite
 
 -- | checks if coordinate is out of borders
@@ -379,7 +379,7 @@ areOutOfBorders coords size = any (\coordinate -> isOutOfBorders coordinate size
 
 -- | checks if given cell is occupied
 isCellOccupied :: Cell -> Bool
-isCellOccupied (_, color) = color == white
+isCellOccupied (_, color') = color' /= white
 
 -- | checks if in a given row all cells are occupied
 isRowFull :: [Cell] -> Bool
@@ -433,15 +433,17 @@ initialWorld = World (initialField (10, 20))
 -- | Game handling functions
 
 updateWorld :: Float -> World -> World
-updateWorld dt world@(World field) = World (tryMove DownDir field)
+updateWorld _dt (World field) = World (tryMove DownDir field)
 
 handleWorld :: Event -> World -> World
 handleWorld (EventKey (SpecialKey KeyDown) Down _ _)  (World field) = World (tryMove DownDir  field)
 handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  (World field) = World (tryMove LeftDir  field)
 handleWorld (EventKey (SpecialKey KeyRight) Down _ _) (World field) = World (tryMove RightDir field)
 handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field) = World (tryMove UpDir    field)
-handleWorld (EventKey (Char 'a') Down _ _)            (World field) = World (tryRotateLeft    field)
-handleWorld (EventKey (Char 'd') Down _ _)            (World field) = World (tryRotateRight   field)
+handleWorld (EventKey (Char a) Down _ _)              (World field)
+  | elem a ['a', 'A', 'ф', 'Ф']                                     = World (tryRotateLeft    field)
+handleWorld (EventKey (Char d) Down _ _)              (World field)
+  | elem d ['d', 'D', 'в', 'В']                                     = World (tryRotateRight   field)
 handleWorld _                                         world         = world
 
 
@@ -449,6 +451,5 @@ tetrisActivity :: IO ()
 tetrisActivity = play displayMode backgroundColor fps initialWorld drawWorld handleWorld updateWorld
   where
     displayMode = (InWindow "Tetris" (800, 800) (100, 100))
---    displayMode = FullScreen
     fps = 5
     backgroundColor = cyan
