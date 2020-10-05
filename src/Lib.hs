@@ -76,7 +76,7 @@ drawField :: Field -> Picture
 drawField (Field _ cells currentTetrimino _) = drawCells (concat cells) <> drawTetrimino currentTetrimino
 
 drawWorld :: World -> Picture
-drawWorld (World field) = scale 20 20 (drawField field)
+drawWorld (World field) = translate 0 0 (scale 20 20 (drawField field))
 
 
 -- | Translation functions:
