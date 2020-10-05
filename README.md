@@ -18,5 +18,8 @@ Type `stack build & stack exec Tetris-exe` in cmd
 
 ```
 sudo apt-get update
-sudo apt-get install freeglut3 freeglut3-dev
+sudo apt-get install -y cabal-install
+
+cabal update
+cabal install gloss
 ```
