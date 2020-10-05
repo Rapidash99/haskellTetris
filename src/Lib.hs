@@ -21,8 +21,8 @@ type Size = Coords
 -- | Cell of which fields are composed
 type Cell = (Coords, Color)
 
--- | Player score. Not implemented in MVP
---type Score = Int
+-- | Player score
+type Score = Int
 
 -- | Game speed. Not implemented in MVP
 --type Speed = Double
@@ -52,13 +52,16 @@ data Field = Field
 -- | World
 data World = World
   { field :: Field
-  --, score :: Score
+  , score            :: Score
   --, speed :: Speed
   }
 
-
+---------------------------------------------------------------
 -- | Draw functions:
+---------------------------------------------------------------
 
+drawScore :: Score -> Picture
+drawScore score = translate 0 (200) (text ("Score: " ++ show score))
 
 drawCell :: Cell -> Picture
 drawCell ((x, y), color') = translate x' y' (color color' (rectangleSolid 0.95 0.95))
@@ -76,10 +79,11 @@ drawField :: Field -> Picture
 drawField (Field _ cells currentTetrimino _) = drawCells (concat cells) <> drawTetrimino currentTetrimino
 
 drawWorld :: World -> Picture
-drawWorld (World field) = translate (-100) 200 (scale 20 20 (drawField field))
+drawWorld (World field score) = translate (-100) 180 (scale 20 20 (drawField field) <> (scale 0.1 0.1 (drawScore score)))
 
-
+---------------------------------------------------------------
 -- | Translation functions:
+---------------------------------------------------------------
 
 colorToType :: Color -> TetriminoType
 colorToType color
@@ -123,8 +127,9 @@ coordsToDir coords = case coords of
 tetriminoToCells :: Tetrimino -> [Cell]
 tetriminoToCells (Tetrimino type' coords) = map (\coordinate -> (coordinate, typeToColor type')) coords
 
-
+---------------------------------------------------------------
 -- | Update functions:
+---------------------------------------------------------------
 
 -- | moves current tetrimino if can
 -- if cannot move down, updates the field
@@ -345,7 +350,9 @@ mergeCell cell@(coordinate, color) (Tetrimino type' coords) = case (elem coordin
   True  -> (coordinate, typeToColor type')
   False -> cell
 
+---------------------------------------------------------------
 -- | Helper functions:
+---------------------------------------------------------------
 
 -- | generates random tetrimino
 getRandomTetrimino :: Int -> Tetrimino
@@ -396,8 +403,9 @@ isRowFull cells = all isCellOccupied cells
 isRowFree :: [Cell] -> Bool
 isRowFree cells = all (not . isCellOccupied) cells
 
---
+---------------------------------------------------------------
 -- | Initial objects generators:
+---------------------------------------------------------------
 
 initialCells :: (Int, Int) -> [[Cell]]
 initialCells (_x, _y) =  
@@ -434,29 +442,30 @@ initialField size = Field
   }
 
 initialWorld :: World
-initialWorld = World (initialField (10, 20))
+initialWorld = World (initialField (10, 20)) 0
 
-
+---------------------------------------------------------------
 -- | Game handling functions
+---------------------------------------------------------------
 
 updateWorld :: Float -> World -> World
-updateWorld _dt (World field) = World (tryMove DownDir field)
+updateWorld _dt (World field score) = World (tryMove DownDir field) (score + 1)
 
 handleWorld :: Event -> World -> World
-handleWorld (EventKey (SpecialKey KeyDown) Down _ _)  (World field) = World (tryMove DownDir  field)
-handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  (World field) = World (tryMove LeftDir  field)
-handleWorld (EventKey (SpecialKey KeyRight) Down _ _) (World field) = World (tryMove RightDir field)
-handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field) = World (tryMove UpDir    field)
-handleWorld (EventKey (Char a) Down _ _)              (World field)
-  | elem a ['a', 'A', 'ф', 'Ф']                                     = World (tryRotateLeft    field)
-handleWorld (EventKey (Char d) Down _ _)              (World field)
-  | elem d ['d', 'D', 'в', 'В']                                     = World (tryRotateRight   field)
-handleWorld _                                         world         = world
+handleWorld (EventKey (SpecialKey KeyDown) Down _ _)  (World field score) = World (tryMove DownDir  field) score
+handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  (World field score) = World (tryMove LeftDir  field) score
+handleWorld (EventKey (SpecialKey KeyRight) Down _ _) (World field score) = World (tryMove RightDir field) score
+handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field score) = World (tryMove UpDir    field) score
+handleWorld (EventKey (Char a) Down _ _)              (World field score)
+  | elem a ['a', 'A', 'ф', 'Ф']                                           = World (tryRotateLeft    field) score
+handleWorld (EventKey (Char d) Down _ _)              (World field score)
+  | elem d ['d', 'D', 'в', 'В']                                           = World (tryRotateRight   field) score
+handleWorld _                                         world               = world
 
 
 tetrisActivity :: IO ()
 tetrisActivity = play displayMode backgroundColor fps initialWorld drawWorld handleWorld updateWorld
   where
-    displayMode = (InWindow "Tetris" (300, 450) (100, 100))
+    displayMode = (InWindow "Tetris" (300, 460) (100, 100))
     fps = 5
     backgroundColor = cyan
