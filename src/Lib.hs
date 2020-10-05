@@ -4,7 +4,6 @@ module Lib
 
 {-# LANGUAGE OverloadedStrings #-}
 
-
 import Graphics.Gloss (play)
 import Graphics.Gloss.Data.Picture
 import Graphics.Gloss.Interface.IO.Interact
@@ -335,11 +334,6 @@ layTetrimino (Field size cells currentTetrimino seed) = newField
       True  -> initialField (10, 20)
       False -> eliminatedField
 
-isGameOver :: Field -> Bool
-isGameOver (Field _ cells tetrimino _) = is
-  where
-    is = doesIntersects tetrimino (concat cells)
-
 mergeAllWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
 mergeAllWithTetrimino [] _ = []
 mergeAllWithTetrimino (row: rows) tetrimino = [newRow] ++ mergeAllWithTetrimino rows tetrimino
@@ -367,6 +361,11 @@ getRandomTetrimino seed = case (random !! (seed `mod` (length random))) of
     random = [2,6,4,3,1,7,5,7,3,6,1,4,3,2,2,3,3,2,3,6,2,5,2,3,7,5,6,7,2,6,7,6,2,1,1,1,4,1,1,2,2,5,6,2,6,2,4,5,5,6,6,5,
               4,3,3,4,7,4,7,6,7,4,1,1,3,2,1,3,7,1,3,5,4,6,4,3,4,1,5,7,1,5,4,2,7,7,1,2,2,5,2,1,1,1,3,3,3,5,2,5,2,7,4,1]
 
+-- | checks if game is over
+isGameOver :: Field -> Bool
+isGameOver (Field _ cells tetrimino _) = is
+  where
+    is = doesIntersects tetrimino (concat cells)
 
 -- | checks if tetrimino intersects with cells
 doesIntersects :: Tetrimino -> [Cell] -> Bool
