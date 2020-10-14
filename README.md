@@ -40,11 +40,10 @@ In flight, the player can rotate the figure 90° left or right and move it horiz
 The tetrimino flies until it hits another tetrimino or the bottom of the gaming field.  
 If any row filled, it disappears and everything that is higher than it drops one cell down.  
 If the game can't produce new tetrimino, you lose, and the game starts from the beginning.  
-You get 1 score point for each second of surival, 20 points for immediate tetrimino dropping, and 100 for each eliminated row
+You get 1 score point for each second of surival, 10 points for immediate tetrimino dropping, and 100 for each eliminated row
 
 ## Improvements ideas
 ##### Must have:
-1. Good game speed implementation
 1. Start, stop, restart, "You died"
 1. Good rotation implementation:
     1. if cannot rotate –> move to the opposite side and then rotate

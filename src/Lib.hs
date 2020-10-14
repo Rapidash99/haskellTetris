@@ -7,6 +7,7 @@ module Lib
 import Graphics.Gloss (play)
 import Graphics.Gloss.Data.Picture
 import Graphics.Gloss.Interface.IO.Interact
+--import Graphics.Gloss.Interface.IO.Game (playIO)
 import System.Random (randoms, mkStdGen)
 
 -- | Coordinates:
@@ -25,8 +26,8 @@ type Cell = (Coords, Color)
 -- | Player score
 type Score = Int
 
--- | Game speed. Not implemented in MVP
---type Speed = Double
+-- | Game speed
+type Speed = Float
 
 -- | Tetrimino direction
 data Direction = UpDir | LeftDir | RightDir | DownDir
@@ -53,8 +54,13 @@ data Field = Field
 -- | World
 data World = World
   { field :: Field
-  --, speed :: Speed
+  , speed :: Speed
+  , time  :: Float
+--  , state :: State
   }
+
+-- | Game state
+data State = Play | Pause | GameOver
 
 ---------------------------------------------------------------
 -- | Draw functions:
@@ -90,7 +96,7 @@ drawField field
     Field _ cells currentTetrimino _ score nextTetrimino = field
 
 drawWorld :: World -> Picture
-drawWorld (World field) = translate (-100) 180 (scale 20 20 (drawField field))
+drawWorld (World field _ _) = translate (-100) 180 (scale 20 20 (drawField field))
 
 ---------------------------------------------------------------
 -- | Translation functions:
@@ -140,15 +146,18 @@ tetriminoToCells (Tetrimino type' coords) = map (\coordinate -> (coordinate, typ
 
 -- | moves current tetrimino if can
 -- if cannot move down, updates the field
-tryMove :: Direction -> Field -> Field
-tryMove direction field = case can of
-  True  -> move direction field
-  False -> newField
+tryMove :: Direction -> World -> World
+tryMove direction world = newWorld
   where
-    can = canMove direction field
-    newField = case direction of
-      DownDir -> layTetrimino field
-      _       -> field
+    World field speed time = world
+    
+    can      = canMove direction field
+    newWorld = case can of
+      True  -> move direction world
+      False -> case direction of
+        DownDir -> layTetrimino world
+        _       -> world
+      
 
 -- | checks if you can move current tetrimino
 canMove :: Direction -> Field -> Bool
@@ -164,33 +173,40 @@ canMove direction field = can
     (plusX, plusY)  = dirToCoords direction
 
 -- | moves current tetrimino (only to use in function tryMove)
-move :: Direction -> Field -> Field
-move direction field = newField
+move :: Direction -> World -> World
+move direction world = newWorld
   where
+    World field speed time                              = world
     Field size cells tetrimino rand score nextTetrimino = field
     Tetrimino type' coords                              = tetrimino
 
+    newWorld       = World newField speed time
     newField       = Field size cells newTetrimino rand score nextTetrimino
     newTetrimino   = Tetrimino type' newCoords
     newCoords      = map (\(x, y) -> (x + plusX, y + plusY)) coords
     (plusX, plusY) = dirToCoords direction
 
 -- | drops current tetrimino down
-dropTetrimino :: Field -> Field
-dropTetrimino field = newField -- to implement
+dropTetrimino :: World -> World
+dropTetrimino world = newWorld
   where
+    World field speed time                              = world
     Field size cells tetrimino rand score nextTetrimino = field
     Tetrimino type' coords                              = tetrimino
     
-    newField = recDrop (Field size cells tetrimino rand (score + 20) nextTetrimino)
+    newField = Field size cells tetrimino rand (score + 10) nextTetrimino
+    newWorld = recDrop (World newField speed time)
 
-recDrop :: Field -> Field
-recDrop field = newField
+-- | recursive function to drop tetrimino down
+recDrop :: World -> World
+recDrop world = newWorld
   where
+    World field speed time = world
+  
     can      = canMove DownDir field
-    newField = case can of 
-      True  -> recDrop (move DownDir field)
-      False -> field
+    newWorld = case can of
+      True  -> recDrop (move DownDir world)
+      False -> tryMove DownDir world
 
 -- | rotates current tetrimino by 90° left if can
 tryRotateLeft :: Field -> Field
@@ -235,7 +251,7 @@ rotateLeft :: Field -> Field
 rotateLeft field = Field size cells newTetrimino rand score nextTetrimino
   where
     Field size cells tetrimino rand score nextTetrimino = field
-    
+
     newTetrimino = rotateTetriminoLeft tetrimino
 
 -- | rotates current tetrimino by 90° right (only to use in function tryRotateRight)
@@ -243,7 +259,7 @@ rotateRight :: Field -> Field
 rotateRight field = Field size cells newTetrimino rand score nextTetrimino
   where
     Field size cells tetrimino rand score nextTetrimino = field
-    
+
     newTetrimino = rotateTetriminoRight tetrimino
 
 -- | rotates given tetrimino by 90° left
@@ -337,7 +353,7 @@ recEliminateRows rowNumber field = case (rowNumber < length cells) of
   False -> field
   where
     Field size cells currentTetrimino rand score nextTetrimino = field
-    
+
     newCells = tryEliminateRow (cells !! rowNumber) field
 
 -- | tries to remove a certain row in a field
@@ -347,7 +363,7 @@ tryEliminateRow cells field = case can of
   False -> field
   where
     Field size rows currentTetrimino rand score nextTetrimino = field
-    
+
     can      = canEliminateRow cells
     newRows  = eliminateRow cells rows
     newField = Field size newRows currentTetrimino rand (score + 100) nextTetrimino
@@ -372,19 +388,21 @@ eliminateRow cells rows = highPart ++ lowPart
                       ((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)]
 
 -- | updates the field when tetrimino lays down
-layTetrimino :: Field -> Field
-layTetrimino field = newField
+layTetrimino :: World -> World
+layTetrimino world = newWorld
   where
+    World field speed time = world
     Field size cells currentTetrimino rand score nextTetrimino = field
-    
-    fieldWithTetrimino = Field size newCells nextTetrimino newRand score (getRandomTetrimino randInt)
+
+    (first, newRand)   = splitAt 1 rand
+    randInt            = head first
     newCells           = mergeAllWithTetrimino cells currentTetrimino
+    fieldWithTetrimino = Field size newCells nextTetrimino newRand score (getRandomTetrimino randInt)
     eliminatedField    = eliminateRows fieldWithTetrimino
     newField           = case (isGameOver eliminatedField) of
       True  -> initialField (10, 20) rand
       False -> eliminatedField
-    (first, newRand)   = splitAt 1 rand
-    randInt            = head first
+    newWorld           = World newField speed time
 
 -- | changes colors of cells at the place of tetrimino
 mergeAllWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
@@ -424,9 +442,10 @@ isGameOver (Field _ cells tetrimino _ _ _) = is
 doesIntersects :: Tetrimino -> [Cell] -> Bool
 doesIntersects _ [] = False
 doesIntersects (Tetrimino _ []) _ = False
-doesIntersects (Tetrimino type' (c: cs)) cells = (elem c nonWhiteCoords) || (doesIntersects (Tetrimino type' cs) cells)
+doesIntersects (Tetrimino type' (c: cs)) cells = does
   where
-    nonWhite = filter (\(_, color') -> color' /= white) cells -- O(n^2), need to fix
+    does           = (elem c nonWhiteCoords) || (doesIntersects (Tetrimino type' cs) cells)
+    nonWhite       = filter (\(_, color') -> color' /= white) cells -- O(n^2), need to fix
     nonWhiteCoords = map fst nonWhite
 
 -- | checks if coordinate is out of borders
@@ -478,34 +497,41 @@ initialField size rand = Field
 
 -- | takes an infinite list of Ints and returns new World
 initialWorld :: [Int] -> World
-initialWorld rand = World (initialField (10, 20) rand)
+initialWorld rand = World (initialField (10, 20) rand) 1 0.0
 
 ---------------------------------------------------------------
 -- | Game handling functions
 ---------------------------------------------------------------
 
+-- | acceleration = 0.5%
 updateWorld :: Float -> World -> World
-updateWorld _dt (World field) = World (newField)
+updateWorld dt world = newWorld
   where
-    (Field size cells currentTetrimino rand score nextTetrimino) = tryMove DownDir field
+    World field speed time                                                 = world
+    World (Field size cells currentTetrimino rand score nextTetrimino) _ _ = tryMove DownDir world
     newField = Field size cells currentTetrimino rand (score + 1) nextTetrimino
+    newSpeed = speed - (speed / 200)
+    newWorld = case (time >= speed) of
+      True  -> World newField newSpeed 0.0
+      False -> World field speed (time + dt)
+
 
 handleWorld :: Event -> World -> World
-handleWorld (EventKey (SpecialKey KeyDown) Down _ _)  (World field) = World (tryMove DownDir  field)
-handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  (World field) = World (tryMove LeftDir  field)
-handleWorld (EventKey (SpecialKey KeyRight) Down _ _) (World field) = World (tryMove RightDir field)
-handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field) = World (dropTetrimino    field)
-handleWorld (EventKey (Char a) Down _ _)              (World field)
-  | elem a ['z', 'Z', 'я', 'Я']                                     = World (tryRotateLeft    field)
-handleWorld (EventKey (Char d) Down _ _)              (World field)
-  | elem d ['x', 'X', 'ч', 'Ч']                                     = World (tryRotateRight   field)
-handleWorld _                                         world         = world
+handleWorld (EventKey (SpecialKey KeyDown) Down _ _)  world = tryMove DownDir  world
+handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  world = tryMove LeftDir  world
+handleWorld (EventKey (SpecialKey KeyRight) Down _ _) world = tryMove RightDir world
+handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    world = dropTetrimino world
+handleWorld (EventKey (Char z) Down _ _)              (World field speed time)
+  | elem z ['z', 'Z', 'я', 'Я']                                                = World (tryRotateLeft    field) speed time
+handleWorld (EventKey (Char x) Down _ _)              (World field speed time)
+  | elem x ['x', 'X', 'ч', 'Ч']                                                = World (tryRotateRight   field) speed time
+handleWorld _                                         world                    = world
 
 
 tetrisActivity :: IO ()
 tetrisActivity = play displayMode backgroundColor fps (initialWorld rand) drawWorld handleWorld updateWorld
   where
     displayMode     = (InWindow "Tetris" (300, 460) (100, 100))
-    fps             = 5
+    fps             = 60
     backgroundColor = makeColor (245/255) (245/255) (1.0) 0
     rand            = randoms (mkStdGen 0) :: [Int]
