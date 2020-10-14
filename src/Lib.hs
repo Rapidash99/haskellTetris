@@ -464,9 +464,9 @@ handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  (World field) = World (try
 handleWorld (EventKey (SpecialKey KeyRight) Down _ _) (World field) = World (tryMove RightDir field)
 handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field) = World (dropTetrimino    field)
 handleWorld (EventKey (Char a) Down _ _)              (World field)
-  | elem a ['a', 'A', 'ф', 'Ф']                                     = World (tryRotateLeft    field)
+  | elem a ['z', 'Z', 'я', 'Я']                                     = World (tryRotateLeft    field)
 handleWorld (EventKey (Char d) Down _ _)              (World field)
-  | elem d ['d', 'D', 'в', 'В']                                     = World (tryRotateRight   field)
+  | elem d ['x', 'X', 'ч', 'Ч']                                     = World (tryRotateRight   field)
 handleWorld _                                         world         = world
 
 
