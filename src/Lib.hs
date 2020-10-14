@@ -181,8 +181,16 @@ dropTetrimino field = newField -- to implement
   where
     Field size cells tetrimino rand score nextTetrimino = field
     Tetrimino type' coords                              = tetrimino
+    
+    newField = recDrop (Field size cells tetrimino rand (score + 20) nextTetrimino)
 
-    newField = Field size cells tetrimino rand (score + 20) nextTetrimino
+recDrop :: Field -> Field
+recDrop field = newField
+  where
+    can      = canMove DownDir field
+    newField = case can of 
+      True  -> recDrop (move DownDir field)
+      False -> field
 
 -- | rotates current tetrimino by 90° left if can
 tryRotateLeft :: Field -> Field

@@ -45,7 +45,6 @@ You get 1 score point for each second of surival, 20 points for immediate tetrim
 ## Improvements ideas
 ##### Must have:
 1. Good game speed implementation
-1. Button to drop immediately
 1. Start, stop, restart, "You died"
 1. Good rotation implementation:
     1. if cannot rotate –> move to the opposite side and then rotate
