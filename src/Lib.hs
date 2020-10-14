@@ -96,7 +96,18 @@ drawField field
     Field _ cells currentTetrimino _ score nextTetrimino = field
 
 drawPausedField :: Field -> Picture
-drawPausedField _field = scale 0.01 0.01 (text "Paused")
+drawPausedField _ = textPicture
+  where
+    text1           = text "Paused"
+    text2           = text "Press Space"
+    text3           = text "to restart"
+    scaledText1     = scale 0.015 0.015 text1
+    scaledText2     = scale 0.01 0.01 text2
+    scaledText3     = scale 0.01 0.01 text3
+    translatedText1 = translate (-1) (-2)  scaledText1
+    translatedText2 = translate   1  (-5)  scaledText2
+    translatedText3 = translate   1  (-8) scaledText3
+    textPicture     = translatedText1 <> translatedText2 <> translatedText3
 
 drawGameOverField :: Field -> Picture
 drawGameOverField field = fieldPicture <> textPicture
