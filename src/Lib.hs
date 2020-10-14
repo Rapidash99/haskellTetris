@@ -182,7 +182,7 @@ dropTetrimino field = newField -- to implement
     Field size cells tetrimino rand score nextTetrimino = field
     Tetrimino type' coords                              = tetrimino
 
-    newField = field
+    newField = Field size cells tetrimino rand (score + 20) nextTetrimino
 
 -- | rotates current tetrimino by 90° left if can
 tryRotateLeft :: Field -> Field
@@ -320,28 +320,29 @@ rotateTetriminoRight (Tetrimino type' coords) = Tetrimino type' newCoords
 
 -- | returns the field without completed rows
 eliminateRows :: Field -> Field
-eliminateRows field = eliminatedField
-  where
-    Field size cells currentTetrimino rand score nextTetrimino = field
-
-    eliminatedField = Field size eliminatedCells currentTetrimino rand score nextTetrimino
-    eliminatedCells = recEliminateRows 0 cells
+eliminateRows field = recEliminateRows 0 field
 
 -- | recursively tries to eliminate every row
-recEliminateRows :: Int -> [[Cell]] -> [[Cell]]
-recEliminateRows rowNumber cells = case (rowNumber < length cells) of
+recEliminateRows :: Int -> Field -> Field
+recEliminateRows rowNumber field = case (rowNumber < length cells) of
   True  -> recEliminateRows (rowNumber + 1) newCells
-  False -> cells
+  False -> field
   where
-    newCells = tryEliminateRow (cells !! rowNumber) cells
+    Field size cells currentTetrimino rand score nextTetrimino = field
+    
+    newCells = tryEliminateRow (cells !! rowNumber) field
 
 -- | tries to remove a certain row in a field
-tryEliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
-tryEliminateRow cells rows = case can of
-  True  -> eliminateRow cells rows
-  False -> rows
+tryEliminateRow :: [Cell] -> Field -> Field
+tryEliminateRow cells field = case can of
+  True  -> newField
+  False -> field
   where
-    can = canEliminateRow cells
+    Field size rows currentTetrimino rand score nextTetrimino = field
+    
+    can      = canEliminateRow cells
+    newRows  = eliminateRow cells rows
+    newField = Field size newRows currentTetrimino rand (score + 100) nextTetrimino
 
 -- | checks if you can remove a certain row in a field
 canEliminateRow :: [Cell] -> Bool
@@ -448,10 +449,10 @@ isRowFree cells = all (not . isCellOccupied) cells
 initialCells :: (Int, Int) -> [[Cell]]
 initialCells (x, y) = cells
   where
-    xs = take x (iterate (+1) 0)
-    ys = take y (iterate (+1) 0)
+    xs     = take x (iterate (+1) 0)
+    ys     = take y (iterate (+1) 0)
     colors = replicate x white
-    cells = map (\row -> zip (zip xs (replicate x row)) colors) ys
+    cells  = map (\row -> zip (zip xs (replicate x row)) colors) ys
     
 
 -- | takes a sizes of new field and an infinite list of Ints and returns new World
