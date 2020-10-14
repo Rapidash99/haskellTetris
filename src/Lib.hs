@@ -81,11 +81,13 @@ drawNextTetrimino tetrimino
   <> translate 12 4 (drawTetrimino tetrimino)
 
 drawField :: Field -> Picture
-drawField (Field _ cells currentTetrimino _ score nextTetrimino)
+drawField field
    = drawCells (concat cells)
   <> drawTetrimino currentTetrimino
   <> (scale 0.007 0.007 (drawScore score))
   <> scale 0.5 0.5 (drawNextTetrimino nextTetrimino)
+  where
+    Field _ cells currentTetrimino _ score nextTetrimino = field
 
 drawWorld :: World -> Picture
 drawWorld (World field) = translate (-100) 180 (scale 20 20 (drawField field))
@@ -150,8 +152,11 @@ tryMove direction field = case can of
 
 -- | checks if you can move current tetrimino
 canMove :: Direction -> Field -> Bool
-canMove direction (Field size cells (Tetrimino type' coords) _ _ _) = can
+canMove direction field = can
   where
+    Field size cells tetrimino _ _ _ = field
+    Tetrimino type' coords           = tetrimino
+
     can             = notOutOfBorders && notIntersects
     notOutOfBorders = not (areOutOfBorders newCoords size)
     notIntersects   = not (doesIntersects (Tetrimino type' newCoords) (concat cells))
@@ -160,8 +165,11 @@ canMove direction (Field size cells (Tetrimino type' coords) _ _ _) = can
 
 -- | moves current tetrimino (only to use in function tryMove)
 move :: Direction -> Field -> Field
-move direction (Field size cells (Tetrimino type' coords) rand score nextTetrimino) = newField
+move direction field = newField
   where
+    Field size cells tetrimino rand score nextTetrimino = field
+    Tetrimino type' coords                              = tetrimino
+
     newField       = Field size cells newTetrimino rand score nextTetrimino
     newTetrimino   = Tetrimino type' newCoords
     newCoords      = map (\(x, y) -> (x + plusX, y + plusY)) coords
@@ -169,8 +177,11 @@ move direction (Field size cells (Tetrimino type' coords) rand score nextTetrimi
 
 -- | drops current tetrimino down
 dropTetrimino :: Field -> Field
-dropTetrimino field@(Field size cells (Tetrimino type' coords) rand score nextTetrimino) = newField -- to implement
+dropTetrimino field = newField -- to implement
   where
+    Field size cells tetrimino rand score nextTetrimino = field
+    Tetrimino type' coords                              = tetrimino
+
     newField = field
 
 -- | rotates current tetrimino by 90° left if can
@@ -191,8 +202,10 @@ tryRotateRight field = case can of
 
 -- | checks if you can rotate current tetrimino by 90° left
 canRotateLeft :: Field -> Bool
-canRotateLeft (Field size cells tetrimino _ _ _) = can
+canRotateLeft field = can
   where
+    Field size cells tetrimino _ _ _     = field
+
     can                                  = notOutOfBorders && notIntersects
     notOutOfBorders                      = not (areOutOfBorders newCoords size)
     notIntersects                        = not (doesIntersects newTetrimino (concat cells))
@@ -200,8 +213,10 @@ canRotateLeft (Field size cells tetrimino _ _ _) = can
 
 -- | checks if you can rotate current tetrimino by 90° right
 canRotateRight :: Field -> Bool
-canRotateRight (Field size cells tetrimino _ _ _) = can
+canRotateRight field = can
   where
+    Field size cells tetrimino _ _ _     = field
+
     can                                  = notOutOfBorders && notIntersects
     notOutOfBorders                      = not (areOutOfBorders newCoords size)
     notIntersects                        = not (doesIntersects newTetrimino (concat cells))
@@ -209,14 +224,18 @@ canRotateRight (Field size cells tetrimino _ _ _) = can
 
 -- | rotates current tetrimino by 90° left (only to use in function tryRotateLeft)
 rotateLeft :: Field -> Field
-rotateLeft (Field size cells tetrimino rand score nextTetrimino) = Field size cells newTetrimino rand score nextTetrimino
+rotateLeft field = Field size cells newTetrimino rand score nextTetrimino
   where
+    Field size cells tetrimino rand score nextTetrimino = field
+    
     newTetrimino = rotateTetriminoLeft tetrimino
 
 -- | rotates current tetrimino by 90° right (only to use in function tryRotateRight)
 rotateRight :: Field -> Field
-rotateRight (Field size cells tetrimino rand score nextTetrimino) = Field size cells newTetrimino rand score nextTetrimino
+rotateRight field = Field size cells newTetrimino rand score nextTetrimino
   where
+    Field size cells tetrimino rand score nextTetrimino = field
+    
     newTetrimino = rotateTetriminoRight tetrimino
 
 -- | rotates given tetrimino by 90° left
@@ -301,8 +320,10 @@ rotateTetriminoRight (Tetrimino type' coords) = Tetrimino type' newCoords
 
 -- | returns the field without completed rows
 eliminateRows :: Field -> Field
-eliminateRows field@(Field size cells currentTetrimino rand score nextTetrimino) = eliminatedField
+eliminateRows field = eliminatedField
   where
+    Field size cells currentTetrimino rand score nextTetrimino = field
+
     eliminatedField = Field size eliminatedCells currentTetrimino rand score nextTetrimino
     eliminatedCells = recEliminateRows 0 cells
 
@@ -343,8 +364,10 @@ eliminateRow cells rows = highPart ++ lowPart
 
 -- | updates the field when tetrimino lays down
 layTetrimino :: Field -> Field
-layTetrimino (Field size cells currentTetrimino rand score nextTetrimino) = newField
+layTetrimino field = newField
   where
+    Field size cells currentTetrimino rand score nextTetrimino = field
+    
     fieldWithTetrimino = Field size newCells nextTetrimino newRand score (getRandomTetrimino randInt)
     newCells           = mergeAllWithTetrimino cells currentTetrimino
     eliminatedField    = eliminateRows fieldWithTetrimino

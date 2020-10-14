@@ -42,13 +42,19 @@ If any row filled, it disappears and everything that is higher than it drops one
 If the game can't produce new tetrimino, you lose, and the game starts from the beginning.
 
 ## Improvements ideas
-1. Customize field size
-1. Customize game speed
-1. Game speed acceleration
+##### Must have:
+1. Good game speed implementation
 1. Button to drop immediately
 1. Start, stop, restart, "You died"
 1. Score += 100 for each eliminated row
+1. Good rotation implementation:
+    1. if cannot rotate –> move to the opposite side and then rotate
+    1. rewrite that ugly shit
+1. Improve design
+##### Super features:
 1. Two players competitive tetris
+1. Animations
+1. Sound effects
 
 ## Developers team
 Vyacheslav Vasilev (v.vasilev@innopolis.ru)  
