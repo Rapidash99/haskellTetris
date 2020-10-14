@@ -167,6 +167,12 @@ move direction (Field size cells (Tetrimino type' coords) rand score nextTetrimi
     newCoords      = map (\(x, y) -> (x + plusX, y + plusY)) coords
     (plusX, plusY) = dirToCoords direction
 
+-- | drops current tetrimino down
+dropTetrimino :: Field -> Field
+dropTetrimino field@(Field size cells (Tetrimino type' coords) rand score nextTetrimino) = newField -- to implement
+  where
+    newField = field
+
 -- | rotates current tetrimino by 90° left if can
 tryRotateLeft :: Field -> Field
 tryRotateLeft field = case can of
@@ -417,29 +423,13 @@ isRowFree cells = all (not . isCellOccupied) cells
 
 -- | takes sizes of field and returns its cells (for now sizes are not used)
 initialCells :: (Int, Int) -> [[Cell]]
-initialCells (_x, _y) =  
-  [
-  [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)],
-  [((0, 1), white),((1, 1), white),((2, 1), white),((3, 1), white),((4, 1), white),((5, 1), white),((6, 1), white),((7, 1), white),((8, 1), white),((9, 1), white)],
-  [((0, 2), white),((1, 2), white),((2, 2), white),((3, 2), white),((4, 2), white),((5, 2), white),((6, 2), white),((7, 2), white),((8, 2), white),((9, 2), white)],
-  [((0, 3), white),((1, 3), white),((2, 3), white),((3, 3), white),((4, 3), white),((5, 3), white),((6, 3), white),((7, 3), white),((8, 3), white),((9, 3), white)],
-  [((0, 4), white),((1, 4), white),((2, 4), white),((3, 4), white),((4, 4), white),((5, 4), white),((6, 4), white),((7, 4), white),((8, 4), white),((9, 4), white)],
-  [((0, 5), white),((1, 5), white),((2, 5), white),((3, 5), white),((4, 5), white),((5, 5), white),((6, 5), white),((7, 5), white),((8, 5), white),((9, 5), white)],
-  [((0, 6), white),((1, 6), white),((2, 6), white),((3, 6), white),((4, 6), white),((5, 6), white),((6, 6), white),((7, 6), white),((8, 6), white),((9, 6), white)],
-  [((0, 7), white),((1, 7), white),((2, 7), white),((3, 7), white),((4, 7), white),((5, 7), white),((6, 7), white),((7, 7), white),((8, 7), white),((9, 7), white)],
-  [((0, 8), white),((1, 8), white),((2, 8), white),((3, 8), white),((4, 8), white),((5, 8), white),((6, 8), white),((7, 8), white),((8, 8), white),((9, 8), white)],
-  [((0, 9), white),((1, 9), white),((2, 9), white),((3, 9), white),((4, 9), white),((5, 9), white),((6, 9), white),((7, 9), white),((8, 9), white),((9, 9), white)],
-  [((0, 10), white),((1, 10), white),((2, 10), white),((3, 10), white),((4, 10), white),((5, 10), white),((6, 10), white),((7, 10), white),((8, 10), white),((9, 10), white)],
-  [((0, 11), white),((1, 11), white),((2, 11), white),((3, 11), white),((4, 11), white),((5, 11), white),((6, 11), white),((7, 11), white),((8, 11), white),((9, 11), white)],
-  [((0, 12), white),((1, 12), white),((2, 12), white),((3, 12), white),((4, 12), white),((5, 12), white),((6, 12), white),((7, 12), white),((8, 12), white),((9, 12), white)],
-  [((0, 13), white),((1, 13), white),((2, 13), white),((3, 13), white),((4, 13), white),((5, 13), white),((6, 13), white),((7, 13), white),((8, 13), white),((9, 13), white)],
-  [((0, 14), white),((1, 14), white),((2, 14), white),((3, 14), white),((4, 14), white),((5, 14), white),((6, 14), white),((7, 14), white),((8, 14), white),((9, 14), white)],
-  [((0, 15), white),((1, 15), white),((2, 15), white),((3, 15), white),((4, 15), white),((5, 15), white),((6, 15), white),((7, 15), white),((8, 15), white),((9, 15), white)],
-  [((0, 16), white),((1, 16), white),((2, 16), white),((3, 16), white),((4, 16), white),((5, 16), white),((6, 16), white),((7, 16), white),((8, 16), white),((9, 16), white)],
-  [((0, 17), white),((1, 17), white),((2, 17), white),((3, 17), white),((4, 17), white),((5, 17), white),((6, 17), white),((7, 17), white),((8, 17), white),((9, 17), white)],
-  [((0, 18), white),((1, 18), white),((2, 18), white),((3, 18), white),((4, 18), white),((5, 18), white),((6, 18), white),((7, 18), white),((8, 18), white),((9, 18), white)],
-  [((0, 19), white),((1, 19), white),((2, 19), white),((3, 19), white),((4, 19), white),((5, 19), white),((6, 19), white),((7, 19), white),((8, 19), white),((9, 19), white)]
-  ]
+initialCells (x, y) = cells
+  where
+    xs = take x (iterate (+1) 0)
+    ys = take y (iterate (+1) 0)
+    colors = replicate x white
+    cells = map (\row -> zip (zip xs (replicate x row)) colors) ys
+    
 
 -- | takes a sizes of new field and an infinite list of Ints and returns new World
 initialField :: (Int, Int) -> [Int] -> Field
@@ -472,7 +462,7 @@ handleWorld :: Event -> World -> World
 handleWorld (EventKey (SpecialKey KeyDown) Down _ _)  (World field) = World (tryMove DownDir  field)
 handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  (World field) = World (tryMove LeftDir  field)
 handleWorld (EventKey (SpecialKey KeyRight) Down _ _) (World field) = World (tryMove RightDir field)
-handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field) = World (tryMove UpDir    field)
+handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field) = World (dropTetrimino    field)
 handleWorld (EventKey (Char a) Down _ _)              (World field)
   | elem a ['a', 'A', 'ф', 'Ф']                                     = World (tryRotateLeft    field)
 handleWorld (EventKey (Char d) Down _ _)              (World field)
