@@ -40,14 +40,15 @@ In flight, the player can rotate the figure 90° left or right and move it horiz
 The tetrimino flies until it hits another tetrimino or the bottom of the gaming field.  
 If any row filled, it disappears and everything that is higher than it drops one cell down.  
 If the game can't produce new tetrimino, you lose, and the game starts from the beginning.  
-You get 1 score point for each second of surival, 10 points for immediate tetrimino dropping, and 100 for each eliminated row
+You get 1 score point for each second of surival, 15 points for immediate tetrimino dropping, and 100 for each eliminated row
 
 ## Improvements ideas
 ##### Must have:
 1. Good rotation implementation:
     1. if cannot rotate –> move to the opposite side and then rotate
     1. rewrite that ugly shit
-1. Improve design
+##### Good features:
+1. Hold
 ##### Super features:
 1. Two players competitive tetris
 1. Animations

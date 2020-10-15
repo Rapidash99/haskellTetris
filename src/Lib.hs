@@ -7,7 +7,6 @@ module Lib
 import Graphics.Gloss (play)
 import Graphics.Gloss.Data.Picture
 import Graphics.Gloss.Interface.IO.Interact
---import Graphics.Gloss.Interface.IO.Game (playIO)
 import System.Random (randoms, mkStdGen)
 
 -- | Coordinates:
@@ -78,6 +77,14 @@ drawCell ((x, y), color') = translate x' y' (color color' (rectangleSolid 0.95 0
 drawCells :: [Cell] -> Picture
 drawCells cells = pictures (map drawCell cells)
 
+drawFrame :: Int -> Int -> Picture
+drawFrame x y = frame
+  where
+    x' = fromIntegral x
+    y' = fromIntegral y
+    rectangle = rectangleWire x' y'
+    frame = translate 4.5 (-9.5) rectangle
+
 drawTetrimino :: Tetrimino -> Picture
 drawTetrimino tetrimino = pictures (map drawCell (tetriminoToCells tetrimino))
 
@@ -88,19 +95,20 @@ drawNextTetrimino tetrimino
 
 drawField :: Field -> Picture
 drawField field
-   = drawCells (concat cells)
+   = drawFrame x y
+  <> drawCells (concat cells)
   <> drawTetrimino currentTetrimino
   <> (scale 0.007 0.007 (drawScore score))
   <> scale 0.5 0.5 (drawNextTetrimino nextTetrimino)
   where
-    Field _ cells currentTetrimino _ score nextTetrimino = field
+    Field (x, y) cells currentTetrimino _ score nextTetrimino = field
 
 drawPausedField :: Field -> Picture
 drawPausedField _ = textPicture
   where
     text1           = text "Paused"
     text2           = text "Press Space"
-    text3           = text "to restart"
+    text3           = text "to continue"
     scaledText1     = scale 0.015 0.015 text1
     scaledText2     = scale 0.01 0.01 text2
     scaledText3     = scale 0.01 0.01 text3
@@ -122,10 +130,7 @@ drawGameOverField field = fieldPicture <> textPicture
     translatedText1 = translate (-1) (-6)  scaledText1
     translatedText2 = translate   1  (-9)  scaledText2
     translatedText3 = translate   1  (-12) scaledText3
-    textLayer1      = translatedText1 <> translatedText2 <> translatedText3
-    textLayer2      = translate (-0.05) 0 textLayer1
-    textLayer3      = translate   0.05  0 textLayer1
-    textPicture     = textLayer1 <> textLayer2 <> textLayer3
+    textPicture     = wideText (translatedText1 <> translatedText2 <> translatedText3)
 
 drawWorld :: World -> Picture
 drawWorld (World field _ _ state) = worldPicture
@@ -153,13 +158,13 @@ colorToType color'
   | otherwise = O
 
 typeToColor :: TetriminoType -> Color
-typeToColor J = blue
-typeToColor I = cyan
-typeToColor O = yellow
-typeToColor L = orange
-typeToColor Z = red
-typeToColor T = violet
-typeToColor S = green
+typeToColor J = dark blue
+typeToColor I = dark cyan
+typeToColor O = dark yellow
+typeToColor L = dark orange
+typeToColor Z = dark red
+typeToColor T = dark violet
+typeToColor S = dark green
 
 dirToCoords :: Direction -> Coords
 dirToCoords dir = case dir of
@@ -458,6 +463,18 @@ mergeCell cell@(coordinate, _) (Tetrimino type' coords) = case (elem coordinate 
 -- | Helper functions:
 ---------------------------------------------------------------
 
+-- | makes text wider, takes it as picture
+wideText :: Picture -> Picture
+wideText textLayer1 = textPicture
+  where
+    textLayer2      = translate (-0.1)  0     textLayer1
+    textLayer3      = translate (-0.05) 0     textLayer1
+    textLayer4      = translate   0.05  0     textLayer1
+    textLayer5      = translate   0.1   0     textLayer1
+    textLayer6      = translate   0     0.05  textLayer1
+    textLayer7      = translate   0   (-0.05) textLayer1
+    textPicture     = textLayer1 <> textLayer2 <> textLayer3 <> textLayer4 <> textLayer5 <> textLayer6 <> textLayer7
+
 -- | generates random tetrimino
 getRandomTetrimino :: Int -> Tetrimino
 getRandomTetrimino rand = case (rand `mod` 7) of
@@ -583,5 +600,5 @@ tetrisActivity = play displayMode backgroundColor fps (initialWorld rand) drawWo
   where
     displayMode     = (InWindow "Tetris" (300, 460) (100, 100))
     fps             = 60
-    backgroundColor = makeColor (245/255) (245/255) (1.0) 0
+    backgroundColor = makeColor (150/255) (150/255) (150/255) 0
     rand            = randoms (mkStdGen 0) :: [Int]
