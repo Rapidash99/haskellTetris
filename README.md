@@ -43,10 +43,6 @@ If the game can't produce new tetrimino, you lose, and the game starts from the 
 You get 1 score point for each second of surival, 15 points for immediate tetrimino dropping, and 100 for each eliminated row
 
 ## Improvements ideas
-##### Must have:
-1. Good rotation implementation:
-    1. if cannot rotate –> move to the opposite side and then rotate
-    1. rewrite that ugly shit
 ##### Good features:
 1. Hold
 ##### Super features:
