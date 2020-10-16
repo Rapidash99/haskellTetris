@@ -88,7 +88,7 @@ drawFrame x y = frame
     x' = fromIntegral x
     y' = fromIntegral y
     rectangle = rectangleWire x' y'
-    frame = translate 4.5 (-9.5) rectangle
+    frame = translate (0.45 * x') ((-0.45 * y') - 0.5) rectangle
 
 drawTetrimino :: Field -> Picture
 drawTetrimino field = tetriminoPicture
@@ -646,7 +646,7 @@ initialCells (x, y) = cells
     ys     = take y (iterate (+1) 0)
     colors = replicate x white
     cells  = map (\row -> zip (zip xs (replicate x row)) colors) ys
-    
+
 
 -- | takes a sizes of new field and an infinite list of Ints and returns new Field
 initialField :: (Int, Int) -> [Int] -> Field
