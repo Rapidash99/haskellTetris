@@ -25,8 +25,11 @@ type Cell = (Coords, Color)
 -- | Player score
 type Score = Int
 
--- | Game speed. Not implemented in MVP
---type Speed = Double
+-- | Game speed
+type Speed = Float
+
+-- | Player 1 or 2
+data Player = P1 | P2
 
 -- | Tetrimino direction
 data Direction = UpDir | LeftDir | RightDir | DownDir
@@ -34,10 +37,14 @@ data Direction = UpDir | LeftDir | RightDir | DownDir
 -- | Tetrimino type
 data TetriminoType = J | I | O | L | Z | T | S
 
+-- | Game state
+data State = Play | Pause | Won1 | Won2
+
 -- | Tetrimino
 data Tetrimino = Tetrimino
-  { type'        :: TetriminoType
-  , coords       :: [Coords]
+  { type'      :: TetriminoType
+  , direction  :: Direction
+  , coordinate :: Coords
   }
 
 -- | Field
@@ -52,8 +59,11 @@ data Field = Field
 
 -- | World
 data World = World
-  { field :: Field
-  --, speed :: Speed
+  { field1 :: Field
+  , field2 :: Field
+  , speed  :: Speed
+  , time   :: Float
+  , state  :: State
   }
 
 ---------------------------------------------------------------
@@ -72,23 +82,103 @@ drawCell ((x, y), color') = translate x' y' (color color' (rectangleSolid 0.95 0
 drawCells :: [Cell] -> Picture
 drawCells cells = pictures (map drawCell cells)
 
-drawTetrimino :: Tetrimino -> Picture
-drawTetrimino tetrimino = pictures (map drawCell (tetriminoToCells tetrimino))
+drawFrame :: Int -> Int -> Picture
+drawFrame x y = frame
+  where
+    x' = fromIntegral x
+    y' = fromIntegral y
+    rectangle = rectangleWire x' y'
+    frame = translate 4.5 (-9.5) rectangle
+
+drawTetrimino :: Field -> Picture
+drawTetrimino field = tetriminoPicture
+  where
+    Field size _ tetrimino _ _ _ = field
+    cells            = tetriminoToCells tetrimino
+    cellsInside      = filter (\(coordinate, _) -> not (isOutOfBorders coordinate size)) cells
+    cellsPictures    = map drawCell cellsInside
+    tetriminoPicture = pictures cellsPictures
 
 drawNextTetrimino :: Tetrimino -> Picture
-drawNextTetrimino tetrimino
-   = translate 11 2 (scale 0.015 0.015 (text ("Next: ")))
-  <> translate 12 4 (drawTetrimino tetrimino)
+drawNextTetrimino tetrimino = textNext <> tetriminoPicture
+  where
+    cells            = tetriminoToCells tetrimino
+    cellsPictures    = map drawCell cells
+    tetriminoPicture = translate 12 4 (pictures cellsPictures)
+    textNext         = translate 11 2 (scale 0.015 0.015 (text ("Next: ")))
 
 drawField :: Field -> Picture
-drawField (Field _ cells currentTetrimino _ score nextTetrimino)
-   = drawCells (concat cells)
-  <> drawTetrimino currentTetrimino
+drawField field
+   = drawFrame x y
+  <> drawCells (concat cells)
+  <> drawTetrimino field
   <> (scale 0.007 0.007 (drawScore score))
   <> scale 0.5 0.5 (drawNextTetrimino nextTetrimino)
+  where
+    Field (x, y) cells currentTetrimino _ score nextTetrimino = field
+
+drawWonField :: Field -> Picture
+drawWonField field = fieldPicture <> textPicture <> drawRestartTipText
+  where
+    fieldPicture    = drawField field
+    text1           = text "YOU WON"
+    scaledText1     = scale 0.02 0.02 text1
+    translatedText1 = translate (-2) (-6)  scaledText1
+    textPicture     = boldText translatedText1
+
+drawLostField :: Field -> Picture
+drawLostField field = fieldPicture <> textPicture <> drawRestartTipText
+  where
+    fieldPicture    = drawField field
+    text1           = text "YOU DIED"
+    scaledText1     = scale 0.02 0.02 text1
+    translatedText1 = translate (-2) (-6)  scaledText1
+    textPicture     = boldText translatedText1
+
+drawPausedTipText :: Picture
+drawPausedTipText = whiteBackground <> textPicture
+  where
+    text1           = text "Paused"
+    text2           = text "Press Space"
+    text3           = text "to continue"
+    scaledText1     = boldText (scale 0.03 0.03 text1)
+    scaledText2     = scale 0.015 0.015 text2
+    scaledText3     = scale 0.015 0.015 text3
+    translatedText1 = translate 5.5 (-4)  scaledText1
+    translatedText2 = translate 6 (-9)  scaledText2
+    translatedText3 = translate 6.5 (-12) scaledText3
+    textPicture     = translatedText1 <> translatedText2 <> translatedText3
+    whiteBackground = color white (rectangleSolid 1000 1000)
+
+drawRestartTipText :: Picture
+drawRestartTipText = textPicture
+  where
+    text1           = text "Press Space"
+    text2           = text "to restart"
+    scaledText1     = scale 0.01 0.01 text1
+    scaledText2     = scale 0.01 0.01 text2
+    translatedText1 = translate   1  (-9)  scaledText1
+    translatedText2 = translate   1  (-12) scaledText2
+    textPicture     = boldText (translatedText1 <> translatedText2)
 
 drawWorld :: World -> Picture
-drawWorld (World field) = translate (-100) 180 (scale 20 20 (drawField field))
+drawWorld (World field1 field2 _ _ state) = worldPicture
+  where
+    field1Picture = case state of
+      Play  -> drawField       field1
+      Pause -> drawPausedTipText
+      Won1  -> drawWonField    field1
+      Won2  -> drawLostField   field1
+    field2Picture = case state of
+      Play  -> drawField       field2
+      Pause -> blank
+      Won1  -> drawLostField   field2
+      Won2  -> drawWonField    field2
+    scaled1      = scale 20 20 field1Picture
+    scaled2      = scale 20 20 field2Picture
+    translated1  = translate (-235) 170 scaled1
+    translated2  = translate 65 170 scaled2
+    worldPicture = translated1 <> translated2
 
 ---------------------------------------------------------------
 -- | Translation functions:
@@ -96,23 +186,23 @@ drawWorld (World field) = translate (-100) 180 (scale 20 20 (drawField field))
 
 colorToType :: Color -> TetriminoType
 colorToType color'
-  | color' == blue   = J
-  | color' == cyan   = I
-  | color' == yellow = O
+  | color' == dark blue   = J
+  | color' == dark cyan   = I
+  | color' == dark yellow = O
   | color' == orange = L
-  | color' == red    = Z
+  | color' == dark red    = Z
   | color' == violet = T
-  | color' == green  = S
+  | color' == dark green  = S
   | otherwise = O
 
 typeToColor :: TetriminoType -> Color
-typeToColor J = blue
-typeToColor I = cyan
-typeToColor O = yellow
+typeToColor J = dark blue
+typeToColor I = dark cyan
+typeToColor O = dark yellow
 typeToColor L = orange
-typeToColor Z = red
+typeToColor Z = dark red
 typeToColor T = violet
-typeToColor S = green
+typeToColor S = dark green
 
 dirToCoords :: Direction -> Coords
 dirToCoords dir = case dir of
@@ -129,8 +219,50 @@ coordsToDir coords = case coords of
   (0, -1) -> Just UpDir
   _       -> Nothing
 
+tetriminoCoords :: Tetrimino -> [Coords]
+tetriminoCoords tetrimino = coords
+  where
+    Tetrimino type' direction coordinate = tetrimino
+    (x, y) = coordinate
+    coords = case type' of
+      O -> [coordinate, (x + 1, y), (x + 1, y + 1), (x, y + 1)]
+      J -> case direction of
+        UpDir    -> [coordinate, (x, y + 1), (x, y - 1), (x + 1, y - 1)]
+        DownDir  -> [coordinate, (x, y - 1), (x, y + 1), (x - 1, y + 1)]
+        RightDir -> [coordinate, (x - 1, y), (x + 1, y), (x + 1, y + 1)]
+        LeftDir  -> [coordinate, (x + 1, y), (x - 1, y), (x - 1, y - 1)]
+      I -> case direction of
+        UpDir    -> [coordinate, (x, y + 1), (x, y - 1), (x, y - 2)]
+        DownDir  -> [coordinate, (x, y - 1), (x, y + 1), (x, y + 2)]
+        RightDir -> [coordinate, (x - 1, y), (x + 1, y), (x + 2, y)]
+        LeftDir  -> [coordinate, (x + 1, y), (x - 1, y), (x - 2, y)]
+      L -> case direction of
+        UpDir    -> [coordinate, (x, y + 1), (x, y - 1), (x - 1, y - 1)]
+        DownDir  -> [coordinate, (x, y - 1), (x, y + 1), (x + 1, y + 1)]
+        RightDir -> [coordinate, (x - 1, y), (x + 1, y), (x + 1, y - 1)]
+        LeftDir  -> [coordinate, (x + 1, y), (x - 1, y), (x - 1, y + 1)]
+      Z -> case direction of
+        UpDir    -> [coordinate, (x, y + 1), (x + 1, y), (x + 1, y - 1)]
+        DownDir  -> [coordinate, (x, y - 1), (x - 1, y), (x - 1, y + 1)]
+        RightDir -> [coordinate, (x - 1, y), (x, y + 1), (x + 1, y + 1)]
+        LeftDir  -> [coordinate, (x + 1, y), (x, y - 1), (x - 1, y - 1)]
+      T -> case direction of
+        UpDir    -> [coordinate, (x - 1, y - 1), (x, y - 1), (x + 1, y - 1)]
+        DownDir  -> [coordinate, (x - 1, y + 1), (x, y + 1), (x + 1, y + 1)]
+        RightDir -> [coordinate, (x + 1, y - 1), (x + 1, y), (x + 1, y + 1)]
+        LeftDir  -> [coordinate, (x - 1, y - 1), (x - 1, y), (x - 1, y + 1)]
+      S -> case direction of
+        UpDir    -> [coordinate, (x, y + 1), (x - 1, y), (x - 1, y - 1)]
+        DownDir  -> [coordinate, (x, y - 1), (x + 1, y), (x + 1, y + 1)]
+        RightDir -> [coordinate, (x - 1, y), (x, y - 1), (x + 1, y - 1)]
+        LeftDir  -> [coordinate, (x + 1, y), (x, y + 1), (x - 1, y + 1)]
+
 tetriminoToCells :: Tetrimino -> [Cell]
-tetriminoToCells (Tetrimino type' coords) = map (\coordinate -> (coordinate, typeToColor type')) coords
+tetriminoToCells tetrimino = map (\coordinate -> (coordinate, color')) coords
+  where
+    Tetrimino type' _ _ = tetrimino
+    coords = tetriminoCoords tetrimino
+    color' = typeToColor type'
 
 ---------------------------------------------------------------
 -- | Update functions:
@@ -138,183 +270,184 @@ tetriminoToCells (Tetrimino type' coords) = map (\coordinate -> (coordinate, typ
 
 -- | moves current tetrimino if can
 -- if cannot move down, updates the field
-tryMove :: Direction -> Field -> Field
-tryMove direction field = case can of
-  True  -> move direction field
-  False -> newField
+tryMove :: Player -> Direction -> World -> World
+tryMove player direction world = newWorld
   where
-    can = canMove direction field
-    newField = case direction of
-      DownDir -> layTetrimino field
-      _       -> field
+    World field1 field2 speed time state = world
+    field = case player of
+      P1 -> field1
+      P2 -> field2
+    can      = canMove direction field
+    newField = move direction field
+    newWorld = case can of
+      True  -> case player of
+        P1 -> World newField field2 speed time state
+        P2 -> World field1 newField speed time state
+      False -> case direction of
+        DownDir -> layTetrimino player world
+        _       -> world
+
 
 -- | checks if you can move current tetrimino
 canMove :: Direction -> Field -> Bool
-canMove direction (Field size cells (Tetrimino type' coords) _ _ _) = can
+canMove direction field = can
   where
+    Field size cells tetrimino _ _ _ = field
+    Tetrimino type' direction' (x, y) = tetrimino
+
     can             = notOutOfBorders && notIntersects
-    notOutOfBorders = not (areOutOfBorders newCoords size)
-    notIntersects   = not (doesIntersects (Tetrimino type' newCoords) (concat cells))
-    newCoords       = map (\(x, y) -> (x + plusX, y + plusY)) coords
+    notOutOfBorders = not (areOutOfLowerBorders newCoords size)
+    notIntersects   = not (doesIntersects newCoords (concat cells))
+    newCoordinate   = (x + plusX, y + plusY)
+    newTetrimino    = Tetrimino type' direction' newCoordinate
+    newCoords       = tetriminoCoords newTetrimino
     (plusX, plusY)  = dirToCoords direction
 
--- | moves current tetrimino (only to use in function tryMove)
+-- | moves current tetrimino without any check
 move :: Direction -> Field -> Field
-move direction (Field size cells (Tetrimino type' coords) rand score nextTetrimino) = newField
+move direction field = newField
   where
+    Field size cells tetrimino rand score nextTetrimino = field
+    Tetrimino type' direction' (x, y)                   = tetrimino
+
     newField       = Field size cells newTetrimino rand score nextTetrimino
-    newTetrimino   = Tetrimino type' newCoords
-    newCoords      = map (\(x, y) -> (x + plusX, y + plusY)) coords
+    newTetrimino   = Tetrimino type' direction' newCoordinate
+    newCoordinate  = (x + plusX, y + plusY)
     (plusX, plusY) = dirToCoords direction
 
--- | rotates current tetrimino by 90° left if can
-tryRotateLeft :: Field -> Field
-tryRotateLeft field = case can of
-  True  -> rotateLeft field
-  False -> field
+-- | checks if you can move tetrimino in any direction and returns the list of directions
+dirsCanMove :: Field -> [Direction]
+dirsCanMove field = dirs
   where
-    can = canRotateLeft field
+    Field size cells tetrimino rand score nextTetrimino = field
+    Tetrimino type' direction (x, y)                    = tetrimino
 
--- | rotates current tetrimino by 90° right if can
-tryRotateRight :: Field -> Field
-tryRotateRight field = case can of
-  True  -> rotateRight field
-  False -> field
+    canLeft  = canMove LeftDir  field
+    canRight = canMove RightDir field
+    canUp    = canMove UpDir    field
+    canDown  = canMove DownDir  field
+
+    dirsLeft  = case canLeft of
+      True  -> [LeftDir]
+      False -> []
+    dirsRight = dirsLeft  ++ case canRight of
+      True  -> [RightDir]
+      False -> []
+    dirsUp    = dirsRight ++ case canUp of
+      True  -> [UpDir]
+      False -> []
+    dirs      = dirsUp    ++ case canDown of
+      True  -> [DownDir]
+      False -> []
+
+-- | drops current tetrimino down
+dropTetrimino :: Player -> World -> World
+dropTetrimino player world = newWorld
   where
-    can = canRotateRight field
+    World field1 field2 speed time state = world
+    newField = case player of
+      P1 -> scorePlus 10 field1
+      P2 -> scorePlus 10 field2
+    newWorld = case player of
+      P1 -> recDrop P1 (World newField field2 speed time state)
+      P2 -> recDrop P2 (World field1 newField speed time state)
 
--- | checks if you can rotate current tetrimino by 90° left
-canRotateLeft :: Field -> Bool
-canRotateLeft (Field size cells tetrimino _ _ _) = can
+-- | recursive function to drop tetrimino down
+recDrop :: Player -> World -> World
+recDrop player world = newWorld
   where
-    can                                  = notOutOfBorders && notIntersects
-    notOutOfBorders                      = not (areOutOfBorders newCoords size)
-    notIntersects                        = not (doesIntersects newTetrimino (concat cells))
-    newTetrimino@(Tetrimino _ newCoords) = rotateTetriminoLeft tetrimino
+    World field1 field2 speed time state = world
+    field = case player of
+      P1 -> field1
+      P2 -> field2
+    can      = canMove DownDir field
+    newField = move DownDir field
+    newWorld = case can of
+      True  -> case player of
+        P1 -> recDrop P1 (World newField field2 speed time state)
+        P2 -> recDrop P2 (World field1 newField speed time state)
+      False -> tryMove player DownDir world
 
--- | checks if you can rotate current tetrimino by 90° right
-canRotateRight :: Field -> Bool
-canRotateRight (Field size cells tetrimino _ _ _) = can
+(+++) :: Num a => (a, a) -> (a, a) -> (a, a)
+(+++) (a1, b1) (a2, b2) = (a1 + a2, b1 + b2)
+
+-- | tries to rotate tetrimino by given direction
+-- LeftDir  –> 90° counterclockwise
+-- RightDir -> 90° clockwise
+-- If can't, tries to move by one cell in opposite direction
+tryRotateTetrimino :: Direction -> Field -> Field
+tryRotateTetrimino dir field = newField
   where
-    can                                  = notOutOfBorders && notIntersects
-    notOutOfBorders                      = not (areOutOfBorders newCoords size)
-    notIntersects                        = not (doesIntersects newTetrimino (concat cells))
-    newTetrimino@(Tetrimino _ newCoords) = rotateTetriminoRight tetrimino
+    Field size cells currentTetrimino rand score nextTetrimino = field
+    Tetrimino type' direction coords                           = currentTetrimino
 
--- | rotates current tetrimino by 90° left (only to use in function tryRotateLeft)
-rotateLeft :: Field -> Field
-rotateLeft (Field size cells tetrimino rand score nextTetrimino) = Field size cells newTetrimino rand score nextTetrimino
+    can          = canRotateTetrimino dir field
+    newField     = Field size cells newTetrimino rand score nextTetrimino
+    newTetrimino = case can of
+      True  -> rotateTetrimino dir currentTetrimino
+      False -> case canRotateMoved of
+        True  -> rotateTetrimino dir movedTetrimino
+        False -> currentTetrimino
+    dirs           = dirsCanMove field
+    dir1 = head dirs
+
+    dirsCanRotate  = filter (\direction' -> canRotateTetrimino dir (Field size cells (Tetrimino type' direction (coords +++ (dirToCoords direction'))) rand score nextTetrimino)) dirs
+    movedTetrimino = case dirsCanRotate of
+      []              -> currentTetrimino
+      (direction': _) -> Tetrimino type' direction (coords +++ (dirToCoords direction'))
+    movedField     = Field size cells movedTetrimino rand score nextTetrimino
+    canRotateMoved = canRotateTetrimino dir movedField
+
+
+
+-- | checks if can rotate tetrimino by given direction
+canRotateTetrimino :: Direction -> Field -> Bool
+canRotateTetrimino dir field = can
   where
-    newTetrimino = rotateTetriminoLeft tetrimino
+    Field size cells currentTetrimino rand score nextTetrimino = field
+    Tetrimino type' direction coordinate                       = currentTetrimino
 
--- | rotates current tetrimino by 90° right (only to use in function tryRotateRight)
-rotateRight :: Field -> Field
-rotateRight (Field size cells tetrimino rand score nextTetrimino) = Field size cells newTetrimino rand score nextTetrimino
+    can             = notOutOfBorders && notIntersects
+    notOutOfBorders = not (areOutOfLowerBorders newCoords size)
+    notIntersects   = not (doesIntersects newCoords (concat cells))
+    newTetrimino    = rotateTetrimino dir currentTetrimino
+    newCoords       = tetriminoCoords newTetrimino
+
+    Tetrimino _ newDirection newCoordinate = newTetrimino
+
+-- | rotates tetrimino by given direction without any check
+rotateTetrimino :: Direction -> Tetrimino -> Tetrimino
+rotateTetrimino dir tetrimino = newTetrimino
   where
-    newTetrimino = rotateTetriminoRight tetrimino
-
--- | rotates given tetrimino by 90° left
-rotateTetriminoLeft :: Tetrimino -> Tetrimino
-rotateTetriminoLeft (Tetrimino type' coords) = Tetrimino type' newCoords
-  where
-    (x1, y1): (x2, y2): _ = coords
-    newCoords = case (type') of
-      O -> coords
-
-      J | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
-      J | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
-      J | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
-      J | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
-
-      I | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
-      I | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
-      I | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
-      I | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
-
-      L | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 - 1, y1 - 2)]
-      L | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 + 1, y1 + 2)]
-      L | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
-      L | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
-
-      Z | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
-      Z | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
-      Z | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
-      Z | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
-
-      T | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
-      T | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
-      T | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 + 1)]
-      T | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 + 1)]
-
-      S | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
-      S | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
-      S | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
-      S | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
-
-      _ -> coords
-      
--- | rotates given tetrimino by 90° right
-rotateTetriminoRight :: Tetrimino -> Tetrimino
-rotateTetriminoRight (Tetrimino type' coords) = Tetrimino type' newCoords
-  where
-    (x1, y1): (x2, y2): _ = coords
-    newCoords = case (type') of
-      O -> coords
-
-      J | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 - 1, y1 + 2)]
-      J | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 + 1, y1 - 2)]
-      J | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 - 1)]
-      J | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 + 1)]
-
-      I | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1, y1 + 3)]
-      I | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1, y1 - 3)]
-      I | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 3, y1)]
-      I | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 3, y1)]
-
-      L | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1, y1 + 2)] ++ [(x1 + 1, y1 + 2)]
-      L | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1, y1 - 2)] ++ [(x1 - 1, y1 - 2)]
-      L | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 2, y1)] ++ [(x1 - 2, y1 + 1)]
-      L | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 2, y1)] ++ [(x1 + 2, y1 - 1)]
-
-      Z | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 1, y1 + 2)]
-      Z | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 - 2)]
-      Z | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 2, y1 - 1)]
-      Z | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 2, y1 + 1)]
-
-      T | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 + 1, y1 + 1)]
-      T | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 + 1, y1 - 1)]
-      T | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 + 1)]
-      T | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 1, y1 + 1)]
-
-      S | x2 == x1 + 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 - 1)] ++ [(x1 - 1, y1 - 1)] ++ [(x1 - 1, y1 - 2)]
-      S | x2 == x1 - 1 && y2 == y1 -> [(x1, y1)] ++ [(x1, y1 + 1)] ++ [(x1 + 1, y1 + 1)] ++ [(x1 + 1, y1 + 2)]
-      S | x2 == x1 && y2 == y1 + 1 -> [(x1, y1)] ++ [(x1 + 1, y1)] ++ [(x1 + 1, y1 - 1)] ++ [(x1 + 2, y1 - 1)]
-      S | x2 == x1 && y2 == y1 - 1 -> [(x1, y1)] ++ [(x1 - 1, y1)] ++ [(x1 - 1, y1 + 1)] ++ [(x1 - 2, y1 + 1)]
-
-      _ -> coords
+    Tetrimino type' direction coordinate = tetrimino
+    newDirection = rotateDirection dir direction
+    newTetrimino = Tetrimino type' newDirection coordinate
 
 -- | returns the field without completed rows
 eliminateRows :: Field -> Field
-eliminateRows field@(Field size cells currentTetrimino rand score nextTetrimino) = eliminatedField
-  where
-    eliminatedField = Field size eliminatedCells currentTetrimino rand score nextTetrimino
-    eliminatedCells = recEliminateRows 0 cells
+eliminateRows field = recEliminateRows 0 field
 
 -- | recursively tries to eliminate every row
-recEliminateRows :: Int -> [[Cell]] -> [[Cell]]
-recEliminateRows rowNumber cells = case (rowNumber < length cells) of
+recEliminateRows :: Int -> Field -> Field
+recEliminateRows rowNumber field = case (rowNumber < length cells) of
   True  -> recEliminateRows (rowNumber + 1) newCells
-  False -> cells
+  False -> field
   where
-    newCells = tryEliminateRow (cells !! rowNumber) cells
+    Field _ cells _ _ _ _ = field
+
+    newCells = tryEliminateRow (cells !! rowNumber) field
 
 -- | tries to remove a certain row in a field
-tryEliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
-tryEliminateRow cells rows = case can of
-  True  -> eliminateRow cells rows
-  False -> rows
+tryEliminateRow :: [Cell] -> Field -> Field
+tryEliminateRow cells field = case can of
+  True  -> newField
+  False -> field
   where
-    can = canEliminateRow cells
+    Field size rows currentTetrimino rand score nextTetrimino = field
+
+    can      = canEliminateRow cells
+    newRows  = eliminateRow cells rows
+    newField = Field size newRows currentTetrimino rand (score + 100) nextTetrimino
 
 -- | checks if you can remove a certain row in a field
 canEliminateRow :: [Cell] -> Bool
@@ -323,7 +456,7 @@ canEliminateRow cells = isRowFull cells
 -- | increases coordinate y by 1 in a list of Cells
 incrementY :: [Cell] -> [Cell]
 incrementY [] = []
-incrementY (((x, y), color): cells) = ((x, y + 1), color): incrementY cells
+incrementY (((x, y), color'): cells) = ((x, y + 1), color'): incrementY cells
 
 -- | removes a certain row in a field (only to use in function tryEliminateRow)
 eliminateRow :: [Cell] -> [[Cell]] -> [[Cell]]
@@ -335,18 +468,35 @@ eliminateRow cells rows = highPart ++ lowPart
     newRow         = [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),
                       ((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)]
 
--- | updates the field when tetrimino lays down
-layTetrimino :: Field -> Field
-layTetrimino (Field size cells currentTetrimino rand score nextTetrimino) = newField
+setWon :: Player -> World -> World
+setWon player world = newWorld
   where
-    fieldWithTetrimino = Field size newCells nextTetrimino newRand score (getRandomTetrimino randInt)
-    newCells           = mergeAllWithTetrimino cells currentTetrimino
-    eliminatedField    = eliminateRows fieldWithTetrimino
-    newField           = case (isGameOver eliminatedField) of
-      True  -> initialField (10, 20) rand
-      False -> eliminatedField
+    World field1 field2 speed time _ = world
+    newWorld = case player of
+      P1 -> World field1 field2 speed time Won1
+      P2 -> World field1 field2 speed time Won2
+
+-- | lays tetrimino down and updates the field correspondingly
+layTetrimino :: Player -> World -> World
+layTetrimino player world = newWorld
+  where
+    World field1 field2 speed time state = world
+    Field size cells currentTetrimino rand score nextTetrimino =
+      case player of
+        P1 -> field1
+        P2 -> field2
     (first, newRand)   = splitAt 1 rand
     randInt            = head first
+    newCells           = mergeAllWithTetrimino cells currentTetrimino
+    fieldWithTetrimino = Field size newCells nextTetrimino newRand score (getRandomTetrimino randInt)
+    eliminatedField    = eliminateRows fieldWithTetrimino
+    newWorld           = case (isGameOver eliminatedField) of
+      True  -> case player of
+        P1 -> World field1 field2 speed time Won2
+        P2 -> World field1 field2 speed time Won1
+      False -> case player of
+        P1 -> World eliminatedField field2 speed time state
+        P2 -> World field1 eliminatedField speed time state
 
 -- | changes colors of cells at the place of tetrimino
 mergeAllWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
@@ -357,47 +507,95 @@ mergeAllWithTetrimino (row: rows) tetrimino = [newRow] ++ mergeAllWithTetrimino 
 
 -- | changes color of cell if there is a tetrimino
 mergeCell :: Cell -> Tetrimino -> Cell
-mergeCell cell@(coordinate, color) (Tetrimino type' coords) = case (elem coordinate coords) of
-  True  -> (coordinate, typeToColor type')
-  False -> cell
+mergeCell cell tetrimino = newCell
+  where
+    (coordinate, _)               = cell
+    Tetrimino type' _ coordinate' = tetrimino
+    coords  = tetriminoCoords tetrimino
+    newCell = case (elem coordinate coords) of
+      True  -> (coordinate, typeToColor type')
+      False -> cell
+
+scorePlus :: Int -> Field -> Field
+scorePlus plus field = newField
+  where
+    Field size cells currentTetrimino rand score nextTetrimino = field
+    newField = Field size cells currentTetrimino rand newScore nextTetrimino
+    newScore = score + plus
+
+timePlus :: Float -> World -> World
+timePlus dt world = newWorld
+  where
+    World field1 field2 speed time state = world
+    newWorld = World field1 field2 speed newTime state
+    newTime = time + dt
+
+-- | acceleration = 0.5%
+updateSpeed :: World -> World
+updateSpeed world = newWorld
+  where
+    World field1 field2 speed time state = world
+    newWorld = World field1 field2 newSpeed time state
+    newSpeed = speed - (speed / 200)
 
 ---------------------------------------------------------------
 -- | Helper functions:
 ---------------------------------------------------------------
 
+-- | makes text bold, takes it as picture
+boldText :: Picture -> Picture
+boldText textLayer1 = textPicture
+  where
+    textLayer2      = translate (-0.1)  0     textLayer1
+    textLayer3      = translate (-0.05) 0     textLayer1
+    textLayer4      = translate   0.05  0     textLayer1
+    textLayer5      = translate   0.1   0     textLayer1
+    textLayer6      = translate   0     0.05  textLayer1
+    textLayer7      = translate   0   (-0.05) textLayer1
+    textPicture     = textLayer1 <> textLayer2 <> textLayer3 <> textLayer4 <> textLayer5 <> textLayer6 <> textLayer7
+
 -- | generates random tetrimino
 getRandomTetrimino :: Int -> Tetrimino
-getRandomTetrimino rand = case (rand `mod` 7) of
-  0 -> Tetrimino O [(5, 0), (6, 0), (6, 1), (5, 1)]
-  1 -> Tetrimino J [(5, 0), (5, 1), (5, 2), (4, 2)]
-  2 -> Tetrimino I [(5, 0), (6, 0), (7, 0), (8, 0)]
-  3 -> Tetrimino L [(5, 0), (5, 1), (5, 2), (6, 2)]
-  4 -> Tetrimino Z [(5, 0), (6, 0), (6, 1), (7, 1)]
-  5 -> Tetrimino T [(5, 0), (5, 1), (4, 1), (6, 1)]
-  6 -> Tetrimino S [(5, 0), (5, 1), (6, 1), (6, 2)]
+getRandomTetrimino rand = tetrimino
+  where
+    tetrimino = case (rand `mod` 7) of
+      1 -> Tetrimino J DownDir (5, -1)
+      2 -> Tetrimino I DownDir (5, -2)
+      3 -> Tetrimino L DownDir (5, -1)
+      4 -> Tetrimino Z DownDir (5, -1)
+      5 -> Tetrimino T DownDir (5, -1)
+      6 -> Tetrimino S DownDir (5, -1)
+      _ -> Tetrimino O DownDir (5, -1)
 
 -- | checks if game is over by checking if you can place a new tetrimino
 isGameOver :: Field -> Bool
-isGameOver (Field _ cells tetrimino _ _ _) = is
+isGameOver field = is
   where
-    is = doesIntersects tetrimino (concat cells)
+    Field _ cells tetrimino _ _ _    = field
+    coords = tetriminoCoords tetrimino
+    is = doesIntersects coords (concat cells)
 
--- | checks if tetrimino intersects with cells
-doesIntersects :: Tetrimino -> [Cell] -> Bool
+-- | checks if tetrimino coords intersects with cells
+doesIntersects :: [Coords] -> [Cell] -> Bool
 doesIntersects _ [] = False
-doesIntersects (Tetrimino _ []) _ = False
-doesIntersects (Tetrimino type' (c: cs)) cells = (elem c nonWhiteCoords) || (doesIntersects (Tetrimino type' cs) cells)
+doesIntersects [] _ = False
+doesIntersects (c:cs) cells = does
   where
-    nonWhite = filter (\(_, color') -> color' /= white) cells -- O(n^2), need to fix
+    does           = (elem c nonWhiteCoords) || (doesIntersects cs cells)
+    nonWhite       = filter (\(_, color') -> color' /= white) cells -- O(n^2), need to fix
     nonWhiteCoords = map fst nonWhite
 
 -- | checks if coordinate is out of borders
 isOutOfBorders :: Coords -> Size -> Bool
 isOutOfBorders (x, y) (sizeX, sizeY) = x < 0 || x >= sizeX || y < 0 || y >= sizeY
 
+-- | checks if coordinate is out of lower borders (left, down, right)
+isOutOfLowerBorders :: Coords -> Size -> Bool
+isOutOfLowerBorders (x, y) (sizeX, sizeY) = x < 0 || x >= sizeX || y >= sizeY
+
 -- | checks if coordinates are out of borders
-areOutOfBorders :: [Coords] -> Size -> Bool
-areOutOfBorders coords size = any (\coordinate -> isOutOfBorders coordinate size) coords
+areOutOfLowerBorders :: [Coords] -> Size -> Bool
+areOutOfLowerBorders coords size = any (\coordinate -> isOutOfLowerBorders coordinate size) coords
 
 -- | checks if given cell is occupied
 isCellOccupied :: Cell -> Bool
@@ -411,37 +609,46 @@ isRowFull cells = all isCellOccupied cells
 isRowFree :: [Cell] -> Bool
 isRowFree cells = all (not . isCellOccupied) cells
 
+rotateDirection :: Direction -> Direction -> Direction
+rotateDirection leftOrRight coordinate = newCoordinate
+  where
+    newCoordinate = case leftOrRight of
+      LeftDir  -> case coordinate of
+        LeftDir  -> DownDir
+        UpDir    -> LeftDir
+        RightDir -> UpDir
+        DownDir  -> RightDir
+      RightDir -> case coordinate of
+        LeftDir  -> UpDir
+        UpDir    -> RightDir
+        RightDir -> DownDir
+        DownDir  -> LeftDir
+      _ -> UpDir
+
+reverseDirection :: Direction -> Direction
+reverseDirection direction = newDirection
+  where
+    newDirection = case direction of
+      LeftDir  -> RightDir
+      RightDir -> LeftDir
+      UpDir    -> DownDir
+      DownDir  -> UpDir
+
 ---------------------------------------------------------------
 -- | Initial objects generators:
 ---------------------------------------------------------------
 
 -- | takes sizes of field and returns its cells (for now sizes are not used)
 initialCells :: (Int, Int) -> [[Cell]]
-initialCells (_x, _y) =  
-  [
-  [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)],
-  [((0, 1), white),((1, 1), white),((2, 1), white),((3, 1), white),((4, 1), white),((5, 1), white),((6, 1), white),((7, 1), white),((8, 1), white),((9, 1), white)],
-  [((0, 2), white),((1, 2), white),((2, 2), white),((3, 2), white),((4, 2), white),((5, 2), white),((6, 2), white),((7, 2), white),((8, 2), white),((9, 2), white)],
-  [((0, 3), white),((1, 3), white),((2, 3), white),((3, 3), white),((4, 3), white),((5, 3), white),((6, 3), white),((7, 3), white),((8, 3), white),((9, 3), white)],
-  [((0, 4), white),((1, 4), white),((2, 4), white),((3, 4), white),((4, 4), white),((5, 4), white),((6, 4), white),((7, 4), white),((8, 4), white),((9, 4), white)],
-  [((0, 5), white),((1, 5), white),((2, 5), white),((3, 5), white),((4, 5), white),((5, 5), white),((6, 5), white),((7, 5), white),((8, 5), white),((9, 5), white)],
-  [((0, 6), white),((1, 6), white),((2, 6), white),((3, 6), white),((4, 6), white),((5, 6), white),((6, 6), white),((7, 6), white),((8, 6), white),((9, 6), white)],
-  [((0, 7), white),((1, 7), white),((2, 7), white),((3, 7), white),((4, 7), white),((5, 7), white),((6, 7), white),((7, 7), white),((8, 7), white),((9, 7), white)],
-  [((0, 8), white),((1, 8), white),((2, 8), white),((3, 8), white),((4, 8), white),((5, 8), white),((6, 8), white),((7, 8), white),((8, 8), white),((9, 8), white)],
-  [((0, 9), white),((1, 9), white),((2, 9), white),((3, 9), white),((4, 9), white),((5, 9), white),((6, 9), white),((7, 9), white),((8, 9), white),((9, 9), white)],
-  [((0, 10), white),((1, 10), white),((2, 10), white),((3, 10), white),((4, 10), white),((5, 10), white),((6, 10), white),((7, 10), white),((8, 10), white),((9, 10), white)],
-  [((0, 11), white),((1, 11), white),((2, 11), white),((3, 11), white),((4, 11), white),((5, 11), white),((6, 11), white),((7, 11), white),((8, 11), white),((9, 11), white)],
-  [((0, 12), white),((1, 12), white),((2, 12), white),((3, 12), white),((4, 12), white),((5, 12), white),((6, 12), white),((7, 12), white),((8, 12), white),((9, 12), white)],
-  [((0, 13), white),((1, 13), white),((2, 13), white),((3, 13), white),((4, 13), white),((5, 13), white),((6, 13), white),((7, 13), white),((8, 13), white),((9, 13), white)],
-  [((0, 14), white),((1, 14), white),((2, 14), white),((3, 14), white),((4, 14), white),((5, 14), white),((6, 14), white),((7, 14), white),((8, 14), white),((9, 14), white)],
-  [((0, 15), white),((1, 15), white),((2, 15), white),((3, 15), white),((4, 15), white),((5, 15), white),((6, 15), white),((7, 15), white),((8, 15), white),((9, 15), white)],
-  [((0, 16), white),((1, 16), white),((2, 16), white),((3, 16), white),((4, 16), white),((5, 16), white),((6, 16), white),((7, 16), white),((8, 16), white),((9, 16), white)],
-  [((0, 17), white),((1, 17), white),((2, 17), white),((3, 17), white),((4, 17), white),((5, 17), white),((6, 17), white),((7, 17), white),((8, 17), white),((9, 17), white)],
-  [((0, 18), white),((1, 18), white),((2, 18), white),((3, 18), white),((4, 18), white),((5, 18), white),((6, 18), white),((7, 18), white),((8, 18), white),((9, 18), white)],
-  [((0, 19), white),((1, 19), white),((2, 19), white),((3, 19), white),((4, 19), white),((5, 19), white),((6, 19), white),((7, 19), white),((8, 19), white),((9, 19), white)]
-  ]
+initialCells (x, y) = cells
+  where
+    xs     = take x (iterate (+1) 0)
+    ys     = take y (iterate (+1) 0)
+    colors = replicate x white
+    cells  = map (\row -> zip (zip xs (replicate x row)) colors) ys
+    
 
--- | takes a sizes of new field and an infinite list of Ints and returns new World
+-- | takes a sizes of new field and an infinite list of Ints and returns new Field
 initialField :: (Int, Int) -> [Int] -> Field
 initialField size rand = Field
   { size             = size
@@ -456,34 +663,62 @@ initialField size rand = Field
 
 -- | takes an infinite list of Ints and returns new World
 initialWorld :: [Int] -> World
-initialWorld rand = World (initialField (10, 20) rand)
+initialWorld rand = World field field 1 0.0 Play
+  where
+    field = initialField (10, 20) rand
 
 ---------------------------------------------------------------
 -- | Game handling functions
 ---------------------------------------------------------------
 
 updateWorld :: Float -> World -> World
-updateWorld _dt (World field) = World (newField)
+updateWorld dt world = case state of
+  Play -> newWorld
+  _    -> world
   where
-    (Field size cells currentTetrimino rand score nextTetrimino) = tryMove DownDir field
-    newField = Field size cells currentTetrimino rand (score + 1) nextTetrimino
+    World field1 field2 speed time state = world
+    World movedField1 movedField2 _ _ newState = tryMove P1 DownDir (tryMove P2 DownDir world)
+    newField1 = scorePlus 1 movedField1
+    newField2 = scorePlus 1 movedField2
+    newWorld = case (time >= speed) of
+      True  -> updateSpeed (World newField1 newField2 speed 0.0 newState)
+      False -> timePlus dt world
+
 
 handleWorld :: Event -> World -> World
-handleWorld (EventKey (SpecialKey KeyDown) Down _ _)  (World field) = World (tryMove DownDir  field)
-handleWorld (EventKey (SpecialKey KeyLeft) Down _ _)  (World field) = World (tryMove LeftDir  field)
-handleWorld (EventKey (SpecialKey KeyRight) Down _ _) (World field) = World (tryMove RightDir field)
-handleWorld (EventKey (SpecialKey KeyUp) Down _ _)    (World field) = World (tryMove UpDir    field)
-handleWorld (EventKey (Char a) Down _ _)              (World field)
-  | elem a ['a', 'A', 'ф', 'Ф']                                     = World (tryRotateLeft    field)
-handleWorld (EventKey (Char d) Down _ _)              (World field)
-  | elem d ['d', 'D', 'в', 'В']                                     = World (tryRotateRight   field)
-handleWorld _                                         world         = world
-
+handleWorld (EventKey key Down _ _) world = case state of
+  Play     -> case key of
+    SpecialKey KeyUp    -> dropTetrimino P2 world
+    SpecialKey KeyLeft  -> tryMove P2 LeftDir world
+    SpecialKey KeyDown  -> tryMove P2 DownDir world
+    SpecialKey KeyRight -> tryMove P2 RightDir world
+    SpecialKey KeySpace -> World field1 field2 speed time Pause
+    Char char
+      | elem char ['w', 'W'] -> dropTetrimino P1 world
+      | elem char ['a', 'A'] -> tryMove P1 LeftDir world
+      | elem char ['s', 'S'] -> tryMove P1 DownDir world
+      | elem char ['d', 'D'] -> tryMove P1 RightDir world
+      | elem char ['x', 'X'] -> World (tryRotateTetrimino LeftDir  field1) field2 speed time state
+      | elem char ['c', 'C'] -> World (tryRotateTetrimino RightDir field1) field2 speed time state
+      | elem char ['k', 'K'] -> World field1 (tryRotateTetrimino LeftDir  field2) speed time state
+      | elem char ['l', 'L'] -> World field1 (tryRotateTetrimino RightDir field2) speed time state
+      | otherwise -> world
+    _ -> world
+  Pause    -> case key of
+    SpecialKey KeySpace -> World field1 field2 speed time Play
+    _ -> world
+  _ -> case key of
+    SpecialKey KeySpace -> initialWorld rand
+    _ -> world
+  where
+    World field1 field2 speed time state = world
+    Field _ _ _ rand _ _ = field1
+handleWorld _ world = world
 
 tetrisActivity :: IO ()
 tetrisActivity = play displayMode backgroundColor fps (initialWorld rand) drawWorld handleWorld updateWorld
   where
-    displayMode     = (InWindow "Tetris" (300, 460) (100, 100))
-    fps             = 5
-    backgroundColor = makeColor (245/255) (245/255) (1.0) 0
+    displayMode     = (InWindow "Tetris" (640, 480) (100, 100))
+    fps             = 60
+    backgroundColor = makeColor (150/255) (150/255) (150/255) 0
     rand            = randoms (mkStdGen 0) :: [Int]
