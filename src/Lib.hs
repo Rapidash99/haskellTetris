@@ -79,6 +79,13 @@ drawCell ((x, y), color') = translate x' y' (color color' (rectangleSolid 0.95 0
     x' = fromIntegral x
     y' = fromIntegral (-y)
 
+drawPotentialCell :: Cell -> Picture
+drawPotentialCell ((x, y), color') = translate x' y' (color color' rectangle)
+  where
+    x' = fromIntegral x
+    y' = fromIntegral (-y)
+    rectangle = rectangleWire 0.9 0.9 <> rectangleWire 0.85 0.85 <> rectangleWire 0.8 0.8
+
 drawCells :: [Cell] -> Picture
 drawCells cells = pictures (map drawCell cells)
 
@@ -107,11 +114,22 @@ drawNextTetrimino tetrimino = textNext <> tetriminoPicture
     tetriminoPicture = translate 12 4 (pictures cellsPictures)
     textNext         = translate 11 2 (scale 0.015 0.015 (text ("Next: ")))
 
+drawPotentialTetrimino :: Field -> Picture
+drawPotentialTetrimino field = tetriminoPicture
+  where
+    Field size _ tetrimino _ _ _ = field
+    potentialTetrimino = dropTetrimino field
+    cells              = tetriminoToCells potentialTetrimino
+    cellsInside        = filter (\(coordinate, _) -> not (isOutOfBorders coordinate size)) cells
+    cellsPictures      = map drawPotentialCell cellsInside
+    tetriminoPicture   = pictures cellsPictures
+
 drawField :: Field -> Picture
 drawField field
    = drawFrame x y
   <> drawCells (concat cells)
   <> drawTetrimino field
+  <> drawPotentialTetrimino field
   <> (scale 0.007 0.007 (drawScore score))
   <> scale 0.5 0.5 (drawNextTetrimino nextTetrimino)
   where
@@ -340,9 +358,9 @@ dirsCanMove field = dirs
       True  -> [DownDir]
       False -> []
 
--- | drops current tetrimino down
-dropTetrimino :: Player -> World -> World
-dropTetrimino player world = newWorld
+-- | drops current tetrimino of given player down
+dropPlayerTetrimino :: Player -> World -> World
+dropPlayerTetrimino player world = newWorld
   where
     World field1 field2 speed time state = world
     newField = case player of
@@ -367,6 +385,17 @@ recDrop player world = newWorld
         P1 -> recDrop P1 (World newField field2 speed time state)
         P2 -> recDrop P2 (World field1 newField speed time state)
       False -> tryMove player DownDir world
+
+-- | returns dropped tetrimino
+dropTetrimino :: Field -> Tetrimino
+dropTetrimino field = newTetrimino
+  where
+    Field _ _ currentTetrimino _ _ _ = field
+    can          = canMove DownDir field
+    newField     = move DownDir field
+    newTetrimino = case can of
+      True  -> dropTetrimino newField
+      False -> currentTetrimino
 
 (+++) :: Num a => (a, a) -> (a, a) -> (a, a)
 (+++) (a1, b1) (a2, b2) = (a1 + a2, b1 + b2)
@@ -688,13 +717,13 @@ updateWorld dt world = case state of
 handleWorld :: Event -> World -> World
 handleWorld (EventKey key Down _ _) world = case state of
   Play     -> case key of
-    SpecialKey KeyUp    -> dropTetrimino P2 world
+    SpecialKey KeyUp    -> dropPlayerTetrimino P2 world
     SpecialKey KeyLeft  -> tryMove P2 LeftDir world
     SpecialKey KeyDown  -> tryMove P2 DownDir world
     SpecialKey KeyRight -> tryMove P2 RightDir world
     SpecialKey KeySpace -> World field1 field2 speed time Pause
     Char char
-      | elem char ['w', 'W'] -> dropTetrimino P1 world
+      | elem char ['w', 'W'] -> dropPlayerTetrimino P1 world
       | elem char ['a', 'A'] -> tryMove P1 LeftDir world
       | elem char ['s', 'S'] -> tryMove P1 DownDir world
       | elem char ['d', 'D'] -> tryMove P1 RightDir world

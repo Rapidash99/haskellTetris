@@ -25,7 +25,7 @@ Try to use the Windows approach, but we didn't check if it works
 Try to use the Windows approach, but we didn't check if it works
 
 ## Gameplay:
-![gif](https://s8.gifyu.com/images/tetris-demo.gif)
+![gif](https://s8.gifyu.com/images/tetris-demo0c9739aa04ff16ec.gif)
 
 ### Control settings:
 ##### 1 player:  
@@ -48,6 +48,7 @@ space = unpause
 space = restart (if game is over)
 
 ### Game rules
+1. It's a common tetris, just with 2 players
 1. Random tetriminoes falls in a 10x20 field, starting from one cell inside the field
 1. Initial speed is 1 tetrimino/sec, but there is an acceleration (0.5%/automove)
 1. In flight, you can:
@@ -64,7 +65,6 @@ space = restart (if game is over)
 
 ## Improvements ideas
 ##### Good features:
-1. Show where tetrimino will fall (hollow transparent tetrimino)
 1. Hold tetrimino for future use (swap current with hold)
 ##### Super features:
 1. Animations
