@@ -4,12 +4,8 @@ Developed by Innopolis University students during the _Programming in Haskell_ c
 
 ## How to run:
 #### Windows:
-First you need to download the compiler
 
-```
-stack setup
-```
-After that, you can build and run the project
+Using stack, build and run the project
 ```
 stack build & stack exec Tetris-exe
 ```

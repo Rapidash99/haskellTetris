@@ -117,7 +117,7 @@ drawNextTetrimino tetrimino = textNext <> tetriminoPicture
 drawPotentialTetrimino :: Field -> Picture
 drawPotentialTetrimino field = tetriminoPicture
   where
-    Field size _ tetrimino _ _ _ = field
+    Field size _ _ _ _ _ = field
     potentialTetrimino = dropTetrimino field
     cells              = tetriminoToCells potentialTetrimino
     cellsInside        = filter (\(coordinate, _) -> not (isOutOfBorders coordinate size)) cells
@@ -133,7 +133,7 @@ drawField field
   <> (scale 0.007 0.007 (drawScore score))
   <> scale 0.5 0.5 (drawNextTetrimino nextTetrimino)
   where
-    Field (x, y) cells currentTetrimino _ score nextTetrimino = field
+    Field (x, y) cells _ _ score nextTetrimino = field
 
 drawWonField :: Field -> Picture
 drawWonField field = fieldPicture <> textPicture <> drawRestartTipText
@@ -337,9 +337,6 @@ move direction field = newField
 dirsCanMove :: Field -> [Direction]
 dirsCanMove field = dirs
   where
-    Field size cells tetrimino rand score nextTetrimino = field
-    Tetrimino type' direction (x, y)                    = tetrimino
-
     canLeft  = canMove LeftDir  field
     canRight = canMove RightDir field
     canUp    = canMove UpDir    field
@@ -397,6 +394,7 @@ dropTetrimino field = newTetrimino
       True  -> dropTetrimino newField
       False -> currentTetrimino
 
+-- | sums two tuples of size of 2
 (+++) :: Num a => (a, a) -> (a, a) -> (a, a)
 (+++) (a1, b1) (a2, b2) = (a1 + a2, b1 + b2)
 
@@ -418,8 +416,6 @@ tryRotateTetrimino dir field = newField
         True  -> rotateTetrimino dir movedTetrimino
         False -> currentTetrimino
     dirs           = dirsCanMove field
-    dir1 = head dirs
-
     dirsCanRotate  = filter (\direction' -> canRotateTetrimino dir (Field size cells (Tetrimino type' direction (coords +++ (dirToCoords direction'))) rand score nextTetrimino)) dirs
     movedTetrimino = case dirsCanRotate of
       []              -> currentTetrimino
@@ -427,22 +423,17 @@ tryRotateTetrimino dir field = newField
     movedField     = Field size cells movedTetrimino rand score nextTetrimino
     canRotateMoved = canRotateTetrimino dir movedField
 
-
-
 -- | checks if can rotate tetrimino by given direction
 canRotateTetrimino :: Direction -> Field -> Bool
 canRotateTetrimino dir field = can
   where
-    Field size cells currentTetrimino rand score nextTetrimino = field
-    Tetrimino type' direction coordinate                       = currentTetrimino
+    Field size cells currentTetrimino _ _ _ = field
 
     can             = notOutOfBorders && notIntersects
     notOutOfBorders = not (areOutOfLowerBorders newCoords size)
     notIntersects   = not (doesIntersects newCoords (concat cells))
     newTetrimino    = rotateTetrimino dir currentTetrimino
     newCoords       = tetriminoCoords newTetrimino
-
-    Tetrimino _ newDirection newCoordinate = newTetrimino
 
 -- | rotates tetrimino by given direction without any check
 rotateTetrimino :: Direction -> Tetrimino -> Tetrimino
@@ -497,6 +488,7 @@ eliminateRow cells rows = highPart ++ lowPart
     newRow         = [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),
                       ((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)]
 
+-- | changes state of given world to WonPn, Pn given
 setWon :: Player -> World -> World
 setWon player world = newWorld
   where
@@ -539,12 +531,13 @@ mergeCell :: Cell -> Tetrimino -> Cell
 mergeCell cell tetrimino = newCell
   where
     (coordinate, _)               = cell
-    Tetrimino type' _ coordinate' = tetrimino
+    Tetrimino type' _ _ = tetrimino
     coords  = tetriminoCoords tetrimino
     newCell = case (elem coordinate coords) of
       True  -> (coordinate, typeToColor type')
       False -> cell
 
+-- | increases score of given field
 scorePlus :: Int -> Field -> Field
 scorePlus plus field = newField
   where
@@ -552,6 +545,7 @@ scorePlus plus field = newField
     newField = Field size cells currentTetrimino rand newScore nextTetrimino
     newScore = score + plus
 
+-- | increases time of given world
 timePlus :: Float -> World -> World
 timePlus dt world = newWorld
   where
@@ -611,7 +605,7 @@ doesIntersects [] _ = False
 doesIntersects (c:cs) cells = does
   where
     does           = (elem c nonWhiteCoords) || (doesIntersects cs cells)
-    nonWhite       = filter (\(_, color') -> color' /= white) cells -- O(n^2), need to fix
+    nonWhite       = filter (\(_, color') -> color' /= white) cells
     nonWhiteCoords = map fst nonWhite
 
 -- | checks if coordinate is out of borders
@@ -638,6 +632,7 @@ isRowFull cells = all isCellOccupied cells
 isRowFree :: [Cell] -> Bool
 isRowFree cells = all (not . isCellOccupied) cells
 
+-- | rotates clockwise or counterclockwise given direction
 rotateDirection :: Direction -> Direction -> Direction
 rotateDirection leftOrRight coordinate = newCoordinate
   where
@@ -654,6 +649,7 @@ rotateDirection leftOrRight coordinate = newCoordinate
         DownDir  -> LeftDir
       _ -> UpDir
 
+-- | reverses given direction
 reverseDirection :: Direction -> Direction
 reverseDirection direction = newDirection
   where
@@ -705,7 +701,7 @@ updateWorld dt world = case state of
   Play -> newWorld
   _    -> world
   where
-    World field1 field2 speed time state = world
+    World _ _ speed time state = world
     World movedField1 movedField2 _ _ newState = tryMove P1 DownDir (tryMove P2 DownDir world)
     newField1 = scorePlus 1 movedField1
     newField2 = scorePlus 1 movedField2
