@@ -29,10 +29,22 @@ cabal install gloss
 ![gif](https://s1.gifyu.com/images/tetris-demo.gif)
 
 ### Control settings:
-By keyboard:  
-Arrows -> move tetrimino  
-a -> rotate tetrimino by 90° left  
-d -> rotate tetrimino by 90° right  
+##### 1 player:  
+w = drop  
+a = move left  
+s = move down  
+d = mode right  
+x = rotate 90° left  
+c = rotate 90° right  
+##### 2 player:  
+🠁 = drop  
+🠀 = move left  
+🠃 = move down  
+🠂 = mode right  
+k = rotate 90° left  
+l = rotate 90° right 
+
+
 
 ### Game rules
 Random tetriminoes falls from above into a rectangular field 10 cells wide and 20 cells high.  
@@ -46,7 +58,6 @@ You get 1 score point for each second of surival, 15 points for immediate tetrim
 ##### Good features:
 1. Hold
 ##### Super features:
-1. Two players competitive tetris
 1. Animations
 1. Sound effects
 

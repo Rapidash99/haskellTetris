@@ -28,6 +28,9 @@ type Score = Int
 -- | Game speed
 type Speed = Float
 
+-- | Player 1 or 2
+data Player = P1 | P2
+
 -- | Tetrimino direction
 data Direction = UpDir | LeftDir | RightDir | DownDir
 
@@ -35,7 +38,7 @@ data Direction = UpDir | LeftDir | RightDir | DownDir
 data TetriminoType = J | I | O | L | Z | T | S
 
 -- | Game state
-data State = Play | Pause | GameOver
+data State = Play | Pause | Won1 | Won2
 
 -- | Tetrimino
 data Tetrimino = Tetrimino
@@ -56,10 +59,11 @@ data Field = Field
 
 -- | World
 data World = World
-  { field :: Field
-  , speed :: Speed
-  , time  :: Float
-  , state :: State
+  { field1 :: Field
+  , field2 :: Field
+  , speed  :: Speed
+  , time   :: Float
+  , state  :: State
   }
 
 ---------------------------------------------------------------
@@ -118,8 +122,11 @@ drawPausedField _ = textPicture
     translatedText3 = translate   1  (-8) scaledText3
     textPicture     = translatedText1 <> translatedText2 <> translatedText3
 
-drawGameOverField :: Field -> Picture
-drawGameOverField field = fieldPicture <> textPicture
+drawWonField :: Field -> Picture
+drawWonField field = drawLostField field
+
+drawLostField :: Field -> Picture
+drawLostField field = fieldPicture <> textPicture
   where
     fieldPicture    = drawField field
     text1           = text "YOU DIED"
@@ -128,20 +135,29 @@ drawGameOverField field = fieldPicture <> textPicture
     scaledText1     = scale 0.02 0.02 text1
     scaledText2     = scale 0.01 0.01 text2
     scaledText3     = scale 0.01 0.01 text3
-    translatedText1 = translate (-1) (-6)  scaledText1
+    translatedText1 = translate (-2) (-6)  scaledText1
     translatedText2 = translate   1  (-9)  scaledText2
     translatedText3 = translate   1  (-12) scaledText3
     textPicture     = wideText (translatedText1 <> translatedText2 <> translatedText3)
 
 drawWorld :: World -> Picture
-drawWorld (World field _ _ state) = worldPicture
+drawWorld (World field1 field2 _ _ state) = worldPicture
   where
-    fieldPicture = case state of
-      Play     -> drawField         field
-      Pause    -> drawPausedField   field
-      GameOver -> drawGameOverField field
-    scaled       = scale 20 20 fieldPicture
-    worldPicture = translate (-100) 180 scaled
+    field1Picture = case state of
+      Play  -> drawField       field1
+      Pause -> drawPausedField field1
+      Won1  -> drawWonField    field1
+      Won2  -> drawLostField   field1
+    field2Picture = case state of
+      Play  -> drawField       field2
+      Pause -> drawPausedField field2
+      Won1  -> drawLostField   field2
+      Won2  -> drawWonField    field2
+    scaled1      = scale 20 20 field1Picture
+    scaled2      = scale 20 20 field2Picture
+    translated1  = translate (-235) 170 scaled1
+    translated2  = translate 65 170 scaled2
+    worldPicture = translated1 <> translated2
 
 ---------------------------------------------------------------
 -- | Translation functions:
@@ -154,7 +170,7 @@ colorToType color'
   | color' == dark yellow = O
   | color' == orange = L
   | color' == dark red    = Z
-  | color' == dark violet = T
+  | color' == violet = T
   | color' == dark green  = S
   | otherwise = O
 
@@ -164,7 +180,7 @@ typeToColor I = dark cyan
 typeToColor O = dark yellow
 typeToColor L = orange
 typeToColor Z = dark red
-typeToColor T = dark violet
+typeToColor T = violet
 typeToColor S = dark green
 
 dirToCoords :: Direction -> Coords
@@ -233,17 +249,21 @@ tetriminoToCells tetrimino = map (\coordinate -> (coordinate, color')) coords
 
 -- | moves current tetrimino if can
 -- if cannot move down, updates the field
-tryMove :: Direction -> World -> World
-tryMove direction world = newWorld
+tryMove :: Player -> Direction -> World -> World
+tryMove player direction world = newWorld
   where
-    World field speed time state = world
-
+    World field1 field2 speed time state = world
+    field = case player of
+      P1 -> field1
+      P2 -> field2
     can      = canMove direction field
     newField = move direction field
     newWorld = case can of
-      True  -> World newField speed time state
+      True  -> case player of
+        P1 -> World newField field2 speed time state
+        P2 -> World field1 newField speed time state
       False -> case direction of
-        DownDir -> layTetrimino world
+        DownDir -> layTetrimino player world
         _       -> world
 
 
@@ -300,26 +320,32 @@ dirsCanMove field = dirs
       False -> []
 
 -- | drops current tetrimino down
-dropTetrimino :: World -> World
-dropTetrimino world = newWorld
+dropTetrimino :: Player -> World -> World
+dropTetrimino player world = newWorld
   where
-    World field speed time state                        = world
-    Field size cells tetrimino rand score nextTetrimino = field
-
-    newField = Field size cells tetrimino rand (score + 10) nextTetrimino
-    newWorld = recDrop (World newField speed time state)
+    World field1 field2 speed time state = world
+    newField = case player of
+      P1 -> scorePlus 10 field1
+      P2 -> scorePlus 10 field2
+    newWorld = case player of
+      P1 -> recDrop P1 (World newField field2 speed time state)
+      P2 -> recDrop P2 (World field1 newField speed time state)
 
 -- | recursive function to drop tetrimino down
-recDrop :: World -> World
-recDrop world = newWorld
+recDrop :: Player -> World -> World
+recDrop player world = newWorld
   where
-    World field speed time state = world
-
+    World field1 field2 speed time state = world
+    field = case player of
+      P1 -> field1
+      P2 -> field2
     can      = canMove DownDir field
     newField = move DownDir field
     newWorld = case can of
-      True  -> recDrop (World newField speed time state)
-      False -> tryMove DownDir world
+      True  -> case player of
+        P1 -> recDrop P1 (World newField field2 speed time state)
+        P2 -> recDrop P2 (World field1 newField speed time state)
+      False -> tryMove player DownDir world
 
 (+++) :: Num a => (a, a) -> (a, a) -> (a, a)
 (+++) (a1, b1) (a2, b2) = (a1 + a2, b1 + b2)
@@ -328,15 +354,13 @@ recDrop world = newWorld
 -- LeftDir  –> 90° counterclockwise
 -- RightDir -> 90° clockwise
 -- If can't, tries to move by one cell in opposite direction
-tryRotateTetrimino :: Direction -> World -> World
-tryRotateTetrimino dir world = newWorld
+tryRotateTetrimino :: Direction -> Field -> Field
+tryRotateTetrimino dir field = newField
   where
-    World field speed time state                               = world
     Field size cells currentTetrimino rand score nextTetrimino = field
     Tetrimino type' direction coords                           = currentTetrimino
 
     can          = canRotateTetrimino dir field
-    newWorld     = World newField speed time state
     newField     = Field size cells newTetrimino rand score nextTetrimino
     newTetrimino = case can of
       True  -> rotateTetrimino dir currentTetrimino
@@ -423,21 +447,35 @@ eliminateRow cells rows = highPart ++ lowPart
     newRow         = [((0, 0), white),((1, 0), white),((2, 0), white),((3, 0), white),((4, 0), white),
                       ((5, 0), white),((6, 0), white),((7, 0), white),((8, 0), white),((9, 0), white)]
 
--- | lays tetrimino down and updates the field correspondingly
-layTetrimino :: World -> World
-layTetrimino world = newWorld
+setWon :: Player -> World -> World
+setWon player world = newWorld
   where
-    World field speed time state = world
-    Field size cells currentTetrimino rand score nextTetrimino = field
+    World field1 field2 speed time _ = world
+    newWorld = case player of
+      P1 -> World field1 field2 speed time Won1
+      P2 -> World field1 field2 speed time Won2
 
+-- | lays tetrimino down and updates the field correspondingly
+layTetrimino :: Player -> World -> World
+layTetrimino player world = newWorld
+  where
+    World field1 field2 speed time state = world
+    Field size cells currentTetrimino rand score nextTetrimino =
+      case player of
+        P1 -> field1
+        P2 -> field2
     (first, newRand)   = splitAt 1 rand
     randInt            = head first
     newCells           = mergeAllWithTetrimino cells currentTetrimino
     fieldWithTetrimino = Field size newCells nextTetrimino newRand score (getRandomTetrimino randInt)
     eliminatedField    = eliminateRows fieldWithTetrimino
     newWorld           = case (isGameOver eliminatedField) of
-      True  -> World field speed time GameOver
-      False -> World eliminatedField speed time state
+      True  -> case player of
+        P1 -> World field1 field2 speed time Won2
+        P2 -> World field1 field2 speed time Won1
+      False -> case player of
+        P1 -> World eliminatedField field2 speed time state
+        P2 -> World field1 eliminatedField speed time state
 
 -- | changes colors of cells at the place of tetrimino
 mergeAllWithTetrimino :: [[Cell]] -> Tetrimino -> [[Cell]]
@@ -456,6 +494,28 @@ mergeCell cell tetrimino = newCell
     newCell = case (elem coordinate coords) of
       True  -> (coordinate, typeToColor type')
       False -> cell
+
+scorePlus :: Int -> Field -> Field
+scorePlus plus field = newField
+  where
+    Field size cells currentTetrimino rand score nextTetrimino = field
+    newField = Field size cells currentTetrimino rand newScore nextTetrimino
+    newScore = score + plus
+
+timePlus :: Float -> World -> World
+timePlus dt world = newWorld
+  where
+    World field1 field2 speed time state = world
+    newWorld = World field1 field2 speed newTime state
+    newTime = time + dt
+
+-- | acceleration = 0.5%
+updateSpeed :: World -> World
+updateSpeed world = newWorld
+  where
+    World field1 field2 speed time state = world
+    newWorld = World field1 field2 newSpeed time state
+    newSpeed = speed - (speed / 200)
 
 ---------------------------------------------------------------
 -- | Helper functions:
@@ -477,15 +537,14 @@ wideText textLayer1 = textPicture
 getRandomTetrimino :: Int -> Tetrimino
 getRandomTetrimino rand = tetrimino
   where
-    tetrimino = Tetrimino tetriminoType DownDir (5, 0)
-    tetriminoType = case (rand `mod` 7) of
-      1 -> J
-      2 -> I
-      3 -> L
-      4 -> Z
-      5 -> T
-      6 -> S
-      _ -> O
+    tetrimino = case (rand `mod` 7) of 
+      1 -> Tetrimino J DownDir (5, 1)
+      2 -> Tetrimino I DownDir (5, 1)
+      3 -> Tetrimino L DownDir (5, 1)
+      4 -> Tetrimino Z DownDir (5, 1)
+      5 -> Tetrimino T DownDir (5, 0)
+      6 -> Tetrimino S DownDir (5, 1)
+      _ -> Tetrimino O DownDir (5, 0)
 
 -- | checks if game is over by checking if you can place a new tetrimino
 isGameOver :: Field -> Bool
@@ -564,7 +623,7 @@ initialCells (x, y) = cells
     cells  = map (\row -> zip (zip xs (replicate x row)) colors) ys
     
 
--- | takes a sizes of new field and an infinite list of Ints and returns new World
+-- | takes a sizes of new field and an infinite list of Ints and returns new Field
 initialField :: (Int, Int) -> [Int] -> Field
 initialField size rand = Field
   { size             = size
@@ -579,54 +638,62 @@ initialField size rand = Field
 
 -- | takes an infinite list of Ints and returns new World
 initialWorld :: [Int] -> World
-initialWorld rand = World (initialField (10, 20) rand) 1 0.0 Play
+initialWorld rand = World field field 1 0.0 Play
+  where
+    field = initialField (10, 20) rand
 
 ---------------------------------------------------------------
 -- | Game handling functions
 ---------------------------------------------------------------
 
--- | acceleration = 0.5%
 updateWorld :: Float -> World -> World
 updateWorld dt world = case state of
   Play -> newWorld
   _    -> world
   where
-    World field speed time state                                                    = world
-    World (Field size cells currentTetrimino rand score nextTetrimino) _ _ newState = tryMove DownDir world
-    newField = Field size cells currentTetrimino rand (score + 1) nextTetrimino
-    newSpeed = speed - (speed / 200)
+    World field1 field2 speed time state = world
+    World movedField1 movedField2 _ _ newState = tryMove P1 DownDir (tryMove P2 DownDir world)
+    newField1 = scorePlus 1 movedField1
+    newField2 = scorePlus 1 movedField2
     newWorld = case (time >= speed) of
-      True  -> World newField newSpeed 0.0 newState
-      False -> World field speed (time + dt) state
+      True  -> updateSpeed (World newField1 newField2 speed 0.0 newState)
+      False -> timePlus dt world
 
 
 handleWorld :: Event -> World -> World
 handleWorld (EventKey key Down _ _) world = case state of
   Play     -> case key of
-    SpecialKey KeyDown  -> tryMove DownDir world
-    SpecialKey KeyLeft  -> tryMove LeftDir world
-    SpecialKey KeyRight -> tryMove RightDir world
-    SpecialKey KeyUp    -> dropTetrimino world
-    SpecialKey KeySpace -> World field speed time Pause
+    SpecialKey KeyUp    -> dropTetrimino P2 world
+    SpecialKey KeyLeft  -> tryMove P2 LeftDir world
+    SpecialKey KeyDown  -> tryMove P2 DownDir world
+    SpecialKey KeyRight -> tryMove P2 RightDir world
+    SpecialKey KeySpace -> World field1 field2 speed time Pause
     Char char
-      | elem char ['z', 'Z'] -> tryRotateTetrimino LeftDir world
-      | elem char ['x', 'X'] -> tryRotateTetrimino RightDir world
+      | elem char ['w', 'W'] -> dropTetrimino P1 world
+      | elem char ['a', 'A'] -> tryMove P1 LeftDir world
+      | elem char ['s', 'S'] -> tryMove P1 DownDir world
+      | elem char ['d', 'D'] -> tryMove P1 RightDir world
+      | elem char ['x', 'X'] -> World (tryRotateTetrimino LeftDir  field1) field2 speed time state
+      | elem char ['c', 'C'] -> World (tryRotateTetrimino RightDir field1) field2 speed time state
+      | elem char ['k', 'K'] -> World field1 (tryRotateTetrimino LeftDir  field2) speed time state
+      | elem char ['l', 'L'] -> World field1 (tryRotateTetrimino RightDir field2) speed time state
       | otherwise -> world
     _ -> world
   Pause    -> case key of
-    SpecialKey KeySpace -> World field speed time Play
+    SpecialKey KeySpace -> World field1 field2 speed time Play
     _ -> world
-  GameOver -> case key of
+  _ -> case key of
     SpecialKey KeySpace -> initialWorld rand
     _ -> world
   where
-    World field@(Field _ _ _ rand _ _) speed time state = world
+    World field1 field2 speed time state = world
+    Field _ _ _ rand _ _ = field1
 handleWorld _ world = world
 
 tetrisActivity :: IO ()
 tetrisActivity = play displayMode backgroundColor fps (initialWorld rand) drawWorld handleWorld updateWorld
   where
-    displayMode     = (InWindow "Tetris" (300, 460) (100, 100))
+    displayMode     = (InWindow "Tetris" (640, 480) (100, 100))
     fps             = 60
     backgroundColor = makeColor (150/255) (150/255) (150/255) 0
     rand            = randoms (mkStdGen 0) :: [Int]
