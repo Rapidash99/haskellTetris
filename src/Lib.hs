@@ -90,67 +90,88 @@ drawFrame x y = frame
     rectangle = rectangleWire x' y'
     frame = translate 4.5 (-9.5) rectangle
 
-drawTetrimino :: Tetrimino -> Picture
-drawTetrimino tetrimino = pictures (map drawCell (tetriminoToCells tetrimino))
+drawTetrimino :: Field -> Picture
+drawTetrimino field = tetriminoPicture
+  where
+    Field size _ tetrimino _ _ _ = field
+    cells            = tetriminoToCells tetrimino
+    cellsInside      = filter (\(coordinate, _) -> not (isOutOfBorders coordinate size)) cells
+    cellsPictures    = map drawCell cellsInside
+    tetriminoPicture = pictures cellsPictures
 
 drawNextTetrimino :: Tetrimino -> Picture
-drawNextTetrimino tetrimino
-   = translate 11 2 (scale 0.015 0.015 (text ("Next: ")))
-  <> translate 12 4 (drawTetrimino tetrimino)
+drawNextTetrimino tetrimino = textNext <> tetriminoPicture
+  where
+    cells            = tetriminoToCells tetrimino
+    cellsPictures    = map drawCell cells
+    tetriminoPicture = translate 12 4 (pictures cellsPictures)
+    textNext         = translate 11 2 (scale 0.015 0.015 (text ("Next: ")))
 
 drawField :: Field -> Picture
 drawField field
    = drawFrame x y
   <> drawCells (concat cells)
-  <> drawTetrimino currentTetrimino
+  <> drawTetrimino field
   <> (scale 0.007 0.007 (drawScore score))
   <> scale 0.5 0.5 (drawNextTetrimino nextTetrimino)
   where
     Field (x, y) cells currentTetrimino _ score nextTetrimino = field
 
-drawPausedField :: Field -> Picture
-drawPausedField _ = textPicture
+drawWonField :: Field -> Picture
+drawWonField field = fieldPicture <> textPicture <> drawRestartTipText
+  where
+    fieldPicture    = drawField field
+    text1           = text "YOU WON"
+    scaledText1     = scale 0.02 0.02 text1
+    translatedText1 = translate (-2) (-6)  scaledText1
+    textPicture     = boldText translatedText1
+
+drawLostField :: Field -> Picture
+drawLostField field = fieldPicture <> textPicture <> drawRestartTipText
+  where
+    fieldPicture    = drawField field
+    text1           = text "YOU DIED"
+    scaledText1     = scale 0.02 0.02 text1
+    translatedText1 = translate (-2) (-6)  scaledText1
+    textPicture     = boldText translatedText1
+
+drawPausedTipText :: Picture
+drawPausedTipText = whiteBackground <> textPicture
   where
     text1           = text "Paused"
     text2           = text "Press Space"
     text3           = text "to continue"
-    scaledText1     = scale 0.015 0.015 text1
-    scaledText2     = scale 0.01 0.01 text2
-    scaledText3     = scale 0.01 0.01 text3
-    translatedText1 = translate (-1) (-2)  scaledText1
-    translatedText2 = translate   1  (-5)  scaledText2
-    translatedText3 = translate   1  (-8) scaledText3
+    scaledText1     = boldText (scale 0.03 0.03 text1)
+    scaledText2     = scale 0.015 0.015 text2
+    scaledText3     = scale 0.015 0.015 text3
+    translatedText1 = translate 5.5 (-4)  scaledText1
+    translatedText2 = translate 6 (-9)  scaledText2
+    translatedText3 = translate 6.5 (-12) scaledText3
     textPicture     = translatedText1 <> translatedText2 <> translatedText3
+    whiteBackground = color white (rectangleSolid 1000 1000)
 
-drawWonField :: Field -> Picture
-drawWonField field = drawLostField field
-
-drawLostField :: Field -> Picture
-drawLostField field = fieldPicture <> textPicture
+drawRestartTipText :: Picture
+drawRestartTipText = textPicture
   where
-    fieldPicture    = drawField field
-    text1           = text "YOU DIED"
-    text2           = text "Press Space"
-    text3           = text "to restart"
-    scaledText1     = scale 0.02 0.02 text1
+    text1           = text "Press Space"
+    text2           = text "to restart"
+    scaledText1     = scale 0.01 0.01 text1
     scaledText2     = scale 0.01 0.01 text2
-    scaledText3     = scale 0.01 0.01 text3
-    translatedText1 = translate (-2) (-6)  scaledText1
-    translatedText2 = translate   1  (-9)  scaledText2
-    translatedText3 = translate   1  (-12) scaledText3
-    textPicture     = wideText (translatedText1 <> translatedText2 <> translatedText3)
+    translatedText1 = translate   1  (-9)  scaledText1
+    translatedText2 = translate   1  (-12) scaledText2
+    textPicture     = boldText (translatedText1 <> translatedText2)
 
 drawWorld :: World -> Picture
 drawWorld (World field1 field2 _ _ state) = worldPicture
   where
     field1Picture = case state of
       Play  -> drawField       field1
-      Pause -> drawPausedField field1
+      Pause -> drawPausedTipText
       Won1  -> drawWonField    field1
       Won2  -> drawLostField   field1
     field2Picture = case state of
       Play  -> drawField       field2
-      Pause -> drawPausedField field2
+      Pause -> blank
       Won1  -> drawLostField   field2
       Won2  -> drawWonField    field2
     scaled1      = scale 20 20 field1Picture
@@ -275,7 +296,7 @@ canMove direction field = can
     Tetrimino type' direction' (x, y) = tetrimino
 
     can             = notOutOfBorders && notIntersects
-    notOutOfBorders = not (areOutOfBorders newCoords size)
+    notOutOfBorders = not (areOutOfLowerBorders newCoords size)
     notIntersects   = not (doesIntersects newCoords (concat cells))
     newCoordinate   = (x + plusX, y + plusY)
     newTetrimino    = Tetrimino type' direction' newCoordinate
@@ -387,7 +408,7 @@ canRotateTetrimino dir field = can
     Tetrimino type' direction coordinate                       = currentTetrimino
 
     can             = notOutOfBorders && notIntersects
-    notOutOfBorders = not (areOutOfBorders newCoords size)
+    notOutOfBorders = not (areOutOfLowerBorders newCoords size)
     notIntersects   = not (doesIntersects newCoords (concat cells))
     newTetrimino    = rotateTetrimino dir currentTetrimino
     newCoords       = tetriminoCoords newTetrimino
@@ -521,9 +542,9 @@ updateSpeed world = newWorld
 -- | Helper functions:
 ---------------------------------------------------------------
 
--- | makes text wider, takes it as picture
-wideText :: Picture -> Picture
-wideText textLayer1 = textPicture
+-- | makes text bold, takes it as picture
+boldText :: Picture -> Picture
+boldText textLayer1 = textPicture
   where
     textLayer2      = translate (-0.1)  0     textLayer1
     textLayer3      = translate (-0.05) 0     textLayer1
@@ -537,14 +558,14 @@ wideText textLayer1 = textPicture
 getRandomTetrimino :: Int -> Tetrimino
 getRandomTetrimino rand = tetrimino
   where
-    tetrimino = case (rand `mod` 7) of 
-      1 -> Tetrimino J DownDir (5, 1)
-      2 -> Tetrimino I DownDir (5, 1)
-      3 -> Tetrimino L DownDir (5, 1)
-      4 -> Tetrimino Z DownDir (5, 1)
-      5 -> Tetrimino T DownDir (5, 0)
-      6 -> Tetrimino S DownDir (5, 1)
-      _ -> Tetrimino O DownDir (5, 0)
+    tetrimino = case (rand `mod` 7) of
+      1 -> Tetrimino J DownDir (5, -1)
+      2 -> Tetrimino I DownDir (5, -2)
+      3 -> Tetrimino L DownDir (5, -1)
+      4 -> Tetrimino Z DownDir (5, -1)
+      5 -> Tetrimino T DownDir (5, -1)
+      6 -> Tetrimino S DownDir (5, -1)
+      _ -> Tetrimino O DownDir (5, -1)
 
 -- | checks if game is over by checking if you can place a new tetrimino
 isGameOver :: Field -> Bool
@@ -568,9 +589,13 @@ doesIntersects (c:cs) cells = does
 isOutOfBorders :: Coords -> Size -> Bool
 isOutOfBorders (x, y) (sizeX, sizeY) = x < 0 || x >= sizeX || y < 0 || y >= sizeY
 
+-- | checks if coordinate is out of lower borders (left, down, right)
+isOutOfLowerBorders :: Coords -> Size -> Bool
+isOutOfLowerBorders (x, y) (sizeX, sizeY) = x < 0 || x >= sizeX || y >= sizeY
+
 -- | checks if coordinates are out of borders
-areOutOfBorders :: [Coords] -> Size -> Bool
-areOutOfBorders coords size = any (\coordinate -> isOutOfBorders coordinate size) coords
+areOutOfLowerBorders :: [Coords] -> Size -> Bool
+areOutOfLowerBorders coords size = any (\coordinate -> isOutOfLowerBorders coordinate size) coords
 
 -- | checks if given cell is occupied
 isCellOccupied :: Cell -> Bool
