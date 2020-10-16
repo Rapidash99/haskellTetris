@@ -25,7 +25,7 @@ Try to use the Windows approach, but we didn't check if it works
 Try to use the Windows approach, but we didn't check if it works
 
 ## Gameplay:
-![gif](https://s1.gifyu.com/images/tetris-demo.gif)
+![gif](https://s8.gifyu.com/images/tetris-demo.gif)
 
 ### Control settings:
 ##### 1 player:  
@@ -64,7 +64,8 @@ space = restart (if game is over)
 
 ## Improvements ideas
 ##### Good features:
-1. Hold
+1. Show where tetrimino will fall (hollow transparent tetrimino)
+1. Hold tetrimino for future use (swap current with hold)
 ##### Super features:
 1. Animations
 1. Sound effects
